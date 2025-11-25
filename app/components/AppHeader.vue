@@ -71,11 +71,7 @@ const toggleSidebar = () => {
   background: #f3f4f6;
 }
 
-@media (min-width: 768px) {
-  .hamburger-button {
-    display: none;
-  }
-}
+/* ハンバーガーボタンは常に表示 */
 
 .header-center {
   flex: 1;

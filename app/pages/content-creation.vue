@@ -1,7 +1,20 @@
 <template>
   <div class="content-creation-container">
     <!-- 操作コンポーネント (Left Column - spans 2 rows) -->
-    <div class="cc-panel cc-operation-component">
+    <div
+      class="cc-panel cc-operation-component"
+      @dragenter.prevent="handleDragEnter"
+      @dragover.prevent="handleDragOver"
+      @dragleave.prevent="handleDragLeave"
+      @drop.prevent="handleDrop"
+    >
+      <!-- ドラッグ&ドロップオーバーレイ -->
+      <div v-if="isDragging" class="cc-drop-overlay">
+        <div class="cc-drop-overlay-content">
+          <div class="cc-drop-icon">📁</div>
+          <div class="cc-drop-text">ファイルをアップロード</div>
+        </div>
+      </div>
       <!-- カテゴリー選択 -->
       <div class="cc-category-selector">
         <div class="cc-category-select-wrapper">
@@ -43,20 +56,58 @@
 
       <!-- チャットタブ -->
       <div v-show="operationTab === 'chat'" class="cc-operation-tab-content active">
-        <ChatArea @file-uploaded="handleFileUploaded" />
+        <ChatArea
+          ref="chatAreaRef"
+          @file-uploaded="handleFileUploaded"
+          @file-upload-started="handleFileUploadStarted"
+          @file-type-updated="handleFileTypeUpdated"
+        />
       </div>
 
       <!-- コースタブ -->
       <div v-show="operationTab === 'course'" class="cc-operation-tab-content active">
         <div class="cc-course-manager">
-          <div class="cc-course-add-section">
-            <button class="cc-button cc-button-primary" @click="addNewCategory">
+          <div class="cc-course-tree">
+            <!-- ツリー構造 -->
+            <div v-for="(category, catIndex) in courseTree" :key="catIndex" class="cc-tree-category">
+              <!-- カテゴリー（Lv.1） -->
+              <div
+                class="cc-tree-node cc-tree-category-node"
+                @click="toggleTreeNode('category', catIndex)"
+              >
+                <span class="cc-tree-expand-icon">{{ category.expanded ? '▼' : '▶' }}</span>
+                <span class="cc-tree-icon">📁</span>
+                <span class="cc-tree-label">{{ category.name }}</span>
+                <span class="cc-tree-count">({{ category.lessons.length }})</span>
+              </div>
+
+              <!-- レッスン一覧 -->
+              <div v-show="category.expanded" class="cc-tree-children">
+                <div
+                  v-for="(lesson, lessonIndex) in category.lessons"
+                  :key="lessonIndex"
+                  class="cc-tree-node cc-tree-lesson-node"
+                  :class="{ 'cc-tree-node-selected': selectedLesson === `${catIndex}-${lessonIndex}` }"
+                  @click="selectLesson(catIndex, lessonIndex, lesson)"
+                >
+                  <span class="cc-tree-expand-icon"></span>
+                  <span class="cc-tree-icon">📄</span>
+                  <span class="cc-tree-label">{{ lesson.name }}</span>
+                  <span v-if="lesson.status === 'draft'" class="cc-tree-status cc-status-draft">下書き</span>
+                  <span v-else-if="lesson.status === 'published'" class="cc-tree-status cc-status-published">公開中</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 操作ボタン -->
+          <div class="cc-course-actions">
+            <button class="cc-button cc-button-secondary" @click="addNewCategory">
               ➕ カテゴリーを追加
             </button>
-          </div>
-          <div class="cc-course-list">
-            <!-- コース内容がJSで動的に生成されます -->
-            <div class="cc-empty-text">コースを選択してください</div>
+            <button class="cc-button cc-button-secondary" @click="addNewLesson">
+              ➕ レッスンを追加
+            </button>
           </div>
         </div>
       </div>
@@ -72,10 +123,43 @@
             </div>
           </div>
           <div v-else class="cc-file-list-display">
-            <div v-for="(file, index) in uploadedFiles" :key="index" class="cc-file-item-display">
-              <span class="cc-file-icon">📄</span>
-              <span class="cc-file-name">{{ file.name }}</span>
-              <span class="cc-file-type-badge">{{ file.dataType }}</span>
+            <div
+              v-for="(file, index) in uploadedFiles"
+              :key="index"
+              class="cc-file-item-card"
+              :class="{ 'cc-file-item-expanded': selectedFileIndex === index }"
+            >
+              <!-- ファイルヘッダー（クリックで展開） -->
+              <div class="cc-file-item-header" @click="toggleFileExpand(index)">
+                <span class="cc-file-expand-icon">{{ selectedFileIndex === index ? '▼' : '▶' }}</span>
+                <span class="cc-file-icon">📄</span>
+                <div class="cc-file-info">
+                  <span class="cc-file-name">{{ file.name }}</span>
+                  <span class="cc-file-date">{{ file.uploadDate }}</span>
+                </div>
+                <select
+                  v-model="file.dataType"
+                  class="cc-file-type-select"
+                  @click.stop
+                >
+                  <option value="未分類">未分類</option>
+                  <option value="見本データ">見本データ</option>
+                  <option value="教材データ">教材データ</option>
+                  <option value="自社データ">自社データ</option>
+                  <option value="顧客データ">顧客データ</option>
+                  <option value="その他">その他</option>
+                </select>
+                <button class="cc-file-download-btn" @click.stop="downloadFile(file)" title="ダウンロード">
+                  ⬇️
+                </button>
+              </div>
+              <!-- 抽出テキスト表示（展開時のみ） -->
+              <div v-if="selectedFileIndex === index" class="cc-file-extracted-text">
+                <div class="cc-extracted-text-header">
+                  <span>抽出されたテキスト</span>
+                </div>
+                <pre class="cc-extracted-text-content">{{ file.extractedText || '解析中...' }}</pre>
+              </div>
             </div>
           </div>
         </div>
@@ -356,7 +440,49 @@ const connectionStatusText = computed(() => {
 const uploadedFiles = ref<FileData[]>([])
 const scripts = ref<Array<{ mode: string; content: string; expanded: boolean }>>([])
 const systemPrompts = ref<Array<{ mode: string; content: string; expanded: boolean }>>([])
+const selectedFileIndex = ref<number | null>(null)
 const defaultModes = ['台本モード', 'お手本モード', '確認モード', '実戦モード']
+
+// コースツリー構造
+interface CourseLesson {
+  name: string
+  status: 'draft' | 'published'
+}
+
+interface CourseCategory {
+  name: string
+  expanded: boolean
+  lessons: CourseLesson[]
+}
+
+const courseTree = ref<CourseCategory[]>([
+  {
+    name: 'Lv.1 基礎編',
+    expanded: true,
+    lessons: [
+      { name: '飛び込み学習モード', status: 'published' },
+      { name: '話すことまとめ', status: 'published' },
+      { name: '基本挨拶トレーニング', status: 'draft' }
+    ]
+  },
+  {
+    name: 'Lv.2 応用編',
+    expanded: false,
+    lessons: [
+      { name: '相手に寄り添うトーク', status: 'published' },
+      { name: '言葉の選び方', status: 'draft' },
+      { name: 'クロージング術', status: 'draft' }
+    ]
+  },
+  {
+    name: 'Lv.3 実践編',
+    expanded: false,
+    lessons: [
+      { name: 'ロールプレイング基礎', status: 'draft' },
+      { name: '顧客対応シミュレーション', status: 'draft' }
+    ]
+  }
+])
 
 // Character settings for popup
 const characterSettings = computed(() => ({
@@ -380,8 +506,13 @@ const uploadedFilesForDialog = computed(() =>
 const showFileSelectionDialog = ref(false)
 const showCharacterSettingsPopup = ref(false)
 
+// Drag & Drop
+const isDragging = ref(false)
+const dragCounter = ref(0)
+
 // Refs
 const roleplayDesignForm = ref<any>(null)
+const chatAreaRef = ref<any>(null)
 
 // Methods
 const togglePlayComponent = () => {
@@ -421,8 +552,37 @@ const applyCharacterSettings = (settings: CharacterSettings) => {
 }
 
 const addNewCategory = () => {
-  // TODO: カテゴリー追加処理
-  console.log('Add new category')
+  const newCategory: CourseCategory = {
+    name: `新規カテゴリー ${courseTree.value.length + 1}`,
+    expanded: true,
+    lessons: []
+  }
+  courseTree.value.push(newCategory)
+}
+
+const addNewLesson = () => {
+  // 最初に展開されているカテゴリーに追加、なければ最初のカテゴリー
+  const targetIndex = courseTree.value.findIndex(c => c.expanded)
+  const index = targetIndex >= 0 ? targetIndex : 0
+
+  if (courseTree.value.length > 0) {
+    courseTree.value[index].lessons.push({
+      name: `新規レッスン ${courseTree.value[index].lessons.length + 1}`,
+      status: 'draft'
+    })
+    courseTree.value[index].expanded = true
+  }
+}
+
+const toggleTreeNode = (type: string, index: number) => {
+  if (type === 'category') {
+    courseTree.value[index].expanded = !courseTree.value[index].expanded
+  }
+}
+
+const selectLesson = (catIndex: number, lessonIndex: number, lesson: CourseLesson) => {
+  selectedLesson.value = `${catIndex}-${lessonIndex}`
+  console.log('Selected lesson:', lesson.name)
 }
 
 const editScript = (index: number) => {
@@ -441,13 +601,88 @@ const handleGenerate = (selectedFiles: FileData[]) => {
   showFileSelectionDialog.value = false
 }
 
-const handleFileUploaded = (file: FileData) => {
+const handleFileUploadStarted = (file: FileData) => {
+  // アップロード開始時にリストに追加（未分類状態）
   uploadedFiles.value.push(file)
+}
+
+const handleFileUploaded = (file: FileData) => {
+  // 解析完了時にファイルの抽出テキストを更新
+  const existingFile = uploadedFiles.value.find(f => f.name === file.name)
+  if (existingFile) {
+    existingFile.extractedText = file.extractedText
+  }
+}
+
+const handleFileTypeUpdated = (data: { fileName: string; dataType: string }) => {
+  // タイプ選択時にファイルのdataTypeを更新
+  const file = uploadedFiles.value.find(f => f.name === data.fileName)
+  if (file) {
+    file.dataType = data.dataType
+  }
+}
+
+const toggleFileExpand = (index: number) => {
+  if (selectedFileIndex.value === index) {
+    selectedFileIndex.value = null
+  } else {
+    selectedFileIndex.value = index
+  }
+}
+
+const downloadFile = (file: FileData) => {
+  // 抽出テキストをダウンロード
+  const content = file.extractedText || ''
+  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${file.name.replace(/\.[^/.]+$/, '')}_extracted.txt`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
+
+// Drag & Drop handlers
+const handleDragEnter = (event: DragEvent) => {
+  dragCounter.value++
+  if (event.dataTransfer?.types.includes('Files')) {
+    isDragging.value = true
+  }
+}
+
+const handleDragOver = (event: DragEvent) => {
+  if (event.dataTransfer?.types.includes('Files')) {
+    isDragging.value = true
+  }
+}
+
+const handleDragLeave = () => {
+  dragCounter.value--
+  if (dragCounter.value === 0) {
+    isDragging.value = false
+  }
+}
+
+const handleDrop = (event: DragEvent) => {
+  isDragging.value = false
+  dragCounter.value = 0
+
+  const file = event.dataTransfer?.files[0]
+  if (file) {
+    // チャットタブに切り替え
+    operationTab.value = 'chat'
+    // ChatAreaのhandleFileを呼び出すためにイベントを発火
+    // ChatAreaコンポーネントにrefを追加して直接呼び出す
+    chatAreaRef.value?.handleDroppedFile(file)
+  }
 }
 </script>
 
 <style scoped>
 /* コンポーネント固有のスタイル */
+
 .cc-play-component.collapsed {
   display: none;
 }
@@ -460,35 +695,125 @@ const handleFileUploaded = (file: FileData) => {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 16px;
 }
 
-.cc-file-item-display {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
+.cc-file-item-card {
   background: white;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.2s;
+}
+
+.cc-file-item-card:hover {
+  border-color: #3b82f6;
+}
+
+.cc-file-item-card.cc-file-item-expanded {
+  border-color: #3b82f6;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+}
+
+.cc-file-item-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.cc-file-item-header:hover {
+  background: #f9fafb;
+}
+
+.cc-file-expand-icon {
+  font-size: 10px;
+  color: #6b7280;
+  width: 16px;
 }
 
 .cc-file-icon {
   font-size: 20px;
 }
 
-.cc-file-name {
+.cc-file-info {
   flex: 1;
-  font-size: 14px;
-  color: #374151;
+  min-width: 0;
 }
 
-.cc-file-type-badge {
+.cc-file-name {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cc-file-date {
+  display: block;
+  font-size: 11px;
+  color: #9ca3af;
+  margin-top: 2px;
+}
+
+.cc-file-type-select {
   padding: 4px 8px;
-  background: #f3f4f6;
-  border-radius: 4px;
   font-size: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  background: white;
+  color: #374151;
+  cursor: pointer;
+  min-width: 100px;
+}
+
+.cc-file-type-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.cc-file-download-btn {
+  padding: 6px 8px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.cc-file-download-btn:hover {
+  background: #f3f4f6;
+}
+
+.cc-file-extracted-text {
+  border-top: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+.cc-extracted-text-header {
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
   color: #6b7280;
+  background: #f3f4f6;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.cc-extracted-text-content {
+  padding: 12px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #374151;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 300px;
+  overflow-y: auto;
+  font-family: inherit;
 }
 
 .cc-input-data-container {
@@ -502,5 +827,98 @@ const handleFileUploaded = (file: FileData) => {
 .cc-input-data-empty {
   text-align: center;
   color: #6b7280;
+}
+
+/* コースツリースタイル */
+.cc-course-tree {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.cc-tree-category {
+  margin-bottom: 4px;
+}
+
+.cc-tree-node {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.cc-tree-node:hover {
+  background: #f3f4f6;
+}
+
+.cc-tree-node-selected {
+  background: #eff6ff;
+  border-left: 3px solid #3b82f6;
+}
+
+.cc-tree-category-node {
+  font-weight: 500;
+}
+
+.cc-tree-lesson-node {
+  padding-left: 28px;
+}
+
+.cc-tree-expand-icon {
+  width: 12px;
+  font-size: 10px;
+  color: #6b7280;
+}
+
+.cc-tree-icon {
+  font-size: 16px;
+}
+
+.cc-tree-label {
+  flex: 1;
+  font-size: 14px;
+  color: #374151;
+}
+
+.cc-tree-count {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.cc-tree-status {
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.cc-status-draft {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.cc-status-published {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.cc-tree-children {
+  margin-left: 8px;
+}
+
+.cc-course-actions {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.cc-course-manager {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 </style>

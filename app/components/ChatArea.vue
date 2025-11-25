@@ -3,8 +3,8 @@
     <div class="cc-ai-chat-component">
       <!-- チャットメッセージエリア -->
       <div ref="messagesContainer" class="cc-chat-messages">
-        <!-- ドラッグ&ドロップエリア（初期表示） -->
-        <div v-if="messages.length === 0" class="cc-chat-dropzone" @dragover.prevent @drop.prevent="handleDrop">
+        <!-- ドラッグ&ドロップエリア（初期表示） - 親コンポーネントで処理するため無効化 -->
+        <div v-if="messages.length === 0" class="cc-chat-dropzone">
           <div class="cc-dropzone-icon">📁</div>
           <div class="cc-dropzone-text">
             ファイルをアップロードするか、<br>
@@ -94,6 +94,8 @@ import type { ChatMessage, FileData } from '~/types/roleplay'
 const emit = defineEmits<{
   'file-uploaded': [file: FileData]
   'open-file-selection': []
+  'file-upload-started': [file: FileData]
+  'file-type-updated': [data: { fileName: string; dataType: string }]
 }>()
 
 interface Suggestion {
@@ -109,6 +111,9 @@ const messagesContainer = ref<HTMLElement>()
 const fileInput = ref<HTMLInputElement>()
 const suggestions = ref<Suggestion[]>([])
 const pendingFile = ref<File | null>(null)
+const uploadProgress = ref(0)
+const isAnalyzing = ref(false)
+const analysisMessageIndex = ref(-1)
 
 const sendMessage = async () => {
   if (!userInput.value.trim() || isLoading.value) return
@@ -180,7 +185,7 @@ const handleDrop = (event: DragEvent) => {
   }
 }
 
-const handleFile = (file: File) => {
+const handleFile = async (file: File) => {
   pendingFile.value = file
 
   // ファイルメッセージを追加
@@ -196,13 +201,88 @@ const handleFile = (file: File) => {
     </div>`
   })
 
-  // AIメッセージを追加
+  // 解析中メッセージを追加（進捗付き）
+  isAnalyzing.value = true
+  uploadProgress.value = 0
+  analysisMessageIndex.value = messages.value.length
   messages.value.push({
     role: 'assistant',
-    content: 'アップロードしたファイルは、どのタイプのデータですか？'
+    content: getAnalysisProgressHtml(0)
   })
 
-  // サジェスションを表示
+  scrollToBottom()
+
+  // ファイルを即時アップロード開始（タイプは後で設定）
+  const fileData: FileData = {
+    name: file.name,
+    size: file.size,
+    type: file.type,
+    dataType: '未分類',
+    uploadDate: new Date().toLocaleDateString('ja-JP'),
+    extractedText: ''
+  }
+
+  // アップロード開始を通知
+  emit('file-upload-started', fileData)
+
+  // 解析をシミュレート（実際はAPIを呼び出す）
+  await simulateFileAnalysis(file, fileData)
+}
+
+const getAnalysisProgressHtml = (progress: number) => {
+  const progressBar = `
+    <div style="margin-top: 8px;">
+      <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+        <span>解析中...</span>
+        <span>${progress}%</span>
+      </div>
+      <div style="background: #e5e7eb; border-radius: 4px; height: 8px; overflow: hidden;">
+        <div style="background: #3b82f6; height: 100%; width: ${progress}%; transition: width 0.3s;"></div>
+      </div>
+    </div>
+  `
+  return `ファイルをアップロードしています...${progressBar}`
+}
+
+const simulateFileAnalysis = async (file: File, fileData: FileData) => {
+  // 進捗を更新しながら解析をシミュレート
+  const steps = [10, 25, 40, 55, 70, 85, 95, 100]
+
+  for (const progress of steps) {
+    await new Promise(resolve => setTimeout(resolve, 300))
+    uploadProgress.value = progress
+
+    if (analysisMessageIndex.value >= 0 && analysisMessageIndex.value < messages.value.length) {
+      if (progress < 100) {
+        messages.value[analysisMessageIndex.value].content = getAnalysisProgressHtml(progress)
+      }
+    }
+  }
+
+  // 解析完了
+  isAnalyzing.value = false
+
+  // ダミーの抽出テキストを生成
+  fileData.extractedText = generateDummyExtractedText(file.name)
+
+  // 完了メッセージを表示
+  if (analysisMessageIndex.value >= 0 && analysisMessageIndex.value < messages.value.length) {
+    messages.value[analysisMessageIndex.value].content = `
+      <div>
+        <div style="color: #10b981; font-weight: 600; margin-bottom: 8px;">✓ 解析完了</div>
+        <div>「${file.name}」の解析が完了しました。</div>
+        <div style="margin-top: 8px; padding: 8px 12px; background: #f0fdf4; border-radius: 6px; border-left: 3px solid #10b981;">
+          ファイルタブから確認できます。
+        </div>
+        <div style="margin-top: 12px;">このファイルはどのタイプのデータですか？</div>
+      </div>
+    `
+  }
+
+  // ファイルアップロード完了を通知
+  emit('file-uploaded', fileData)
+
+  // サジェスションを表示（タイプ選択）
   suggestions.value = [
     { label: '📖 見本データ（商談や接客の正解例）', action: 'selectFileType', value: 'sample' },
     { label: '📚 教材データ（学ばせたい内容の資料）', action: 'selectFileType', value: 'material' },
@@ -212,6 +292,41 @@ const handleFile = (file: File) => {
   ]
 
   scrollToBottom()
+}
+
+const generateDummyExtractedText = (fileName: string): string => {
+  // ファイル名に基づいてダミーテキストを生成
+  if (fileName.includes('営業') || fileName.includes('sales')) {
+    return `【営業トーク資料】
+
+■ 導入フェーズ
+お世話になっております。○○株式会社の△△と申します。
+本日はお時間をいただきありがとうございます。
+
+■ ヒアリングフェーズ
+現在の課題について、もう少し詳しくお聞かせいただけますでしょうか？
+特に○○の部分で困っていらっしゃることはございますか？
+
+■ 提案フェーズ
+お伺いした課題に対して、弊社のサービスでは以下のような解決策をご提案できます...`
+  }
+
+  return `【抽出されたテキスト】
+
+ファイル: ${fileName}
+
+このファイルから以下の内容が抽出されました。
+
+・セクション1: 概要説明
+  ファイルの主要な内容についての説明が含まれています。
+
+・セクション2: 詳細情報
+  詳細なデータや情報が記載されています。
+
+・セクション3: まとめ
+  全体のまとめと結論が記載されています。
+
+※ 実際の運用ではAIがファイルの内容を解析し、適切なテキストを抽出します。`
 }
 
 const handleSuggestionClick = (suggestion: Suggestion) => {
@@ -234,16 +349,13 @@ const handleSuggestionClick = (suggestion: Suggestion) => {
     // AIの確認メッセージ
     messages.value.push({
       role: 'assistant',
-      content: `承知しました。「${file.name}」を${dataTypeLabels[suggestion.value || 'other']}として処理します。<br>ファイルを解析中です...`
+      content: `承知しました。「${file.name}」を<strong>${dataTypeLabels[suggestion.value || 'other']}</strong>として登録しました。`
     })
 
-    // ファイルデータを親コンポーネントに通知
-    emit('file-uploaded', {
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      dataType: dataTypeLabels[suggestion.value || 'other'],
-      uploadDate: new Date().toLocaleDateString('ja-JP')
+    // ファイルのタイプを更新するイベントを発行
+    emit('file-type-updated', {
+      fileName: file.name,
+      dataType: dataTypeLabels[suggestion.value || 'other']
     })
 
     // サジェスションをクリア
@@ -264,8 +376,13 @@ const formatFileSize = (bytes: number): string => {
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
 }
 
+// 外部からドロップされたファイルを処理
+const handleDroppedFile = (file: File) => {
+  handleFile(file)
+}
+
 // データをグローバルに公開
-defineExpose({ messages })
+defineExpose({ messages, handleDroppedFile })
 </script>
 
 <style scoped>

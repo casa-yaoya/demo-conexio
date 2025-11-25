@@ -14,10 +14,10 @@
       <div
         v-for="item in navigationItems"
         :key="item.name"
-        @click="switchView(item.view)"
+        @click="switchView(item)"
         class="flex items-center gap-3 px-5 py-3 text-sm cursor-pointer transition-all border-l-[3px]"
         :class="[
-          isActive(item.view)
+          isActive(item)
             ? 'bg-gray-50 border-l-primary-600 font-semibold'
             : 'border-l-transparent hover:bg-gray-50'
         ]"
@@ -25,52 +25,49 @@
         <span class="text-base">{{ item.icon }}</span>
         <span>{{ item.name }}</span>
       </div>
-    </nav>
-
-    <div class="border-t border-gray-200">
-      <button
+      <!-- ログアウト -->
+      <div
         @click="handleLogout"
-        class="flex w-full items-center gap-3 px-5 py-3 text-sm transition-colors hover:bg-gray-50 border-l-[3px] border-l-transparent"
+        class="flex items-center gap-3 px-5 py-3 text-sm cursor-pointer transition-all border-l-[3px] border-l-transparent hover:bg-gray-50"
       >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
           <polyline points="16 17 21 12 16 7"></polyline>
           <line x1="21" y1="12" x2="9" y2="12"></line>
         </svg>
         <span>ログアウト</span>
-      </button>
-    </div>
+      </div>
+    </nav>
   </aside>
 </template>
 
 <script setup lang="ts">
+const router = useRouter()
+const route = useRoute()
+
 // グローバルな状態を参照
-const currentView = useState<string>('currentView', () => 'roleplay')
 const isSidebarOpen = useState<boolean>('isSidebarOpen', () => false)
 
+// ナビゲーションアイテム - 全てSSRページルーティング
 const navigationItems = [
-  { name: 'ロープレ構築', view: 'roleplay', icon: '✏️' },
-  { name: 'サマリー', view: 'summary', icon: '📊' },
-  { name: '個人記録', view: 'personal-records', icon: '👤' },
-  { name: 'ランキング', view: 'ranking', icon: '🏆' },
-  { name: 'ログ', view: 'logs', icon: '📝' },
-  { name: 'データ読み込み', view: 'data-import', icon: '📂' },
+  { name: 'ロープレ構築', path: '/content-creation', icon: '✏️' },
+  { name: 'サマリー', path: '/summary', icon: '📊' },
+  { name: '個人レコード', path: '/ranking', icon: '🏆' },
+  { name: 'ログ', path: '/logs', icon: '📝' },
 ]
 
-const switchView = (view: string) => {
-  currentView.value = view
-  // モバイルではサイドバーを閉じる
-  if (window.innerWidth < 768) {
-    isSidebarOpen.value = false
-  }
+const switchView = (item: typeof navigationItems[0]) => {
+  router.push(item.path)
+  // サイドバーを閉じる
+  isSidebarOpen.value = false
 }
 
 const closeSidebar = () => {
   isSidebarOpen.value = false
 }
 
-const isActive = (view: string) => {
-  return currentView.value === view
+const isActive = (item: typeof navigationItems[0]) => {
+  return route.path === item.path
 }
 
 const handleLogout = () => {
@@ -88,13 +85,7 @@ const handleLogout = () => {
   bottom: 0;
   background: rgba(0, 0, 0, 0.5);
   z-index: 99;
-  display: none;
-}
-
-@media (max-width: 767px) {
-  .sidebar-overlay {
-    display: block;
-  }
+  display: block;
 }
 
 .app-sidebar {
@@ -105,21 +96,16 @@ const handleLogout = () => {
   background: white;
   height: 100%;
   overflow-y: auto;
-  transition: transform 0.3s ease;
+  transition: transform 0.3s ease, width 0.3s ease, margin-left 0.3s ease;
+  position: fixed;
+  top: 64px;
+  left: 0;
+  bottom: 0;
+  z-index: 100;
+  transform: translateX(-100%);
 }
 
-@media (max-width: 767px) {
-  .app-sidebar {
-    position: fixed;
-    top: 64px;
-    left: 0;
-    bottom: 0;
-    z-index: 100;
-    transform: translateX(-100%);
-  }
-
-  .app-sidebar.open {
-    transform: translateX(0);
-  }
+.app-sidebar.open {
+  transform: translateX(0);
 }
 </style>

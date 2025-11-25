@@ -8,12 +8,18 @@ export interface SortState {
   direction: SortDirection
 }
 
+export interface SortOptions {
+  defaultColumn?: string
+  defaultDirection?: SortDirection
+}
+
 export const useTableSort = <T extends Record<string, any>>(
-  initialData: Ref<T[]> | ComputedRef<T[]>
+  initialData: Ref<T[]> | ComputedRef<T[]>,
+  options?: SortOptions
 ) => {
   const sortState = ref<SortState>({
-    column: '',
-    direction: null
+    column: options?.defaultColumn || '',
+    direction: options?.defaultDirection || null
   })
 
   // ソート実行
@@ -57,35 +63,33 @@ export const useTableSort = <T extends Record<string, any>>(
   // カラムクリック時のソート切り替え
   const toggleSort = (column: string) => {
     if (sortState.value.column === column) {
-      // 同じカラムの場合、方向を切り替え
-      if (sortState.value.direction === 'asc') {
-        sortState.value.direction = 'desc'
-      } else if (sortState.value.direction === 'desc') {
-        // リセット
-        sortState.value.column = ''
-        sortState.value.direction = null
-      } else {
+      // 同じカラムの場合、方向を切り替え（desc → asc）
+      if (sortState.value.direction === 'desc') {
         sortState.value.direction = 'asc'
+      } else {
+        sortState.value.direction = 'desc'
       }
     } else {
-      // 新しいカラムの場合、昇順で開始
+      // 新しいカラムの場合、降順で開始（数が大きい順）
       sortState.value.column = column
-      sortState.value.direction = 'asc'
+      sortState.value.direction = 'desc'
     }
   }
 
-  // ソートアイコンの取得
+  // ソートアイコンの取得（▼/▲形式）
   const getSortIcon = (column: string): string => {
     if (sortState.value.column !== column) {
-      return '⇅' // 未ソート
+      return '▼' // 未ソート（グレー表示用）
     }
     if (sortState.value.direction === 'asc') {
-      return '↑' // 昇順
+      return '▲' // 昇順（小さい順）
     }
-    if (sortState.value.direction === 'desc') {
-      return '↓' // 降順
-    }
-    return '⇅'
+    return '▼' // 降順（大きい順）
+  }
+
+  // 特定のカラムがソートされているかチェック（アイコンの色変更用）
+  const isSortedColumn = (column: string): boolean => {
+    return sortState.value.column === column
   }
 
   // 特定のカラムがソートされているかチェック
@@ -105,6 +109,7 @@ export const useTableSort = <T extends Record<string, any>>(
     toggleSort,
     getSortIcon,
     isSorted,
+    isSortedColumn,
     resetSort
   }
 }

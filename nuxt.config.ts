@@ -5,6 +5,11 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
 
+  // Windows環境でのVite SSRの問題を回避
+  experimental: {
+    externalVue: false
+  },
+
   modules: [
     'shadcn-nuxt',
     '@vueuse/nuxt'

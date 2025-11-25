@@ -17,7 +17,8 @@ export interface Point {
 
 export interface FileData {
   name: string
-  dataType: 'image' | 'pdf' | 'excel' | 'word' | 'text'
+  dataType: string  // 見本データ, 教材データ, 自社データ, 顧客データ, その他, 未分類
+  type?: string     // MIME type
   extractedText?: string
   content?: string
   summary?: string

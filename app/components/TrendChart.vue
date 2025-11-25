@@ -38,8 +38,9 @@ interface DatasetConfig {
   data: (number | null)[]
   borderColor?: string
   backgroundColor?: string
-  type?: 'line' | 'bar'
+  type?: 'line' | 'bar' | 'area'
   yAxisID?: string
+  order?: number  // 描画順序（小さいほど手前）
 }
 
 const props = defineProps<{
@@ -90,13 +91,15 @@ const processedDatasets = computed(() => {
       : [...dataset.data]
 
     const isBarType = dataset.type === 'bar'
-    const isLineType = dataset.type === 'line' || !dataset.type
+    const isAreaType = dataset.type === 'area'
+    const isLineType = dataset.type === 'line' || (!dataset.type && !isBarType && !isAreaType)
 
     const baseConfig = {
       label: dataset.label,
       data: data,
       borderColor: dataset.borderColor || getDefaultColor(index),
-      yAxisID: dataset.yAxisID || 'y'
+      yAxisID: dataset.yAxisID || 'y',
+      order: dataset.order ?? index  // 描画順序
     }
 
     if (isBarType) {
@@ -105,6 +108,18 @@ const processedDatasets = computed(() => {
         type: 'bar' as const,
         backgroundColor: dataset.backgroundColor || 'rgba(251, 146, 60, 0.6)',
         borderWidth: 1
+      }
+    } else if (isAreaType) {
+      // 面グラフ（塗りつぶしのある折れ線グラフ）
+      return {
+        ...baseConfig,
+        type: 'line' as const,
+        backgroundColor: dataset.backgroundColor || 'rgba(59, 130, 246, 0.3)',
+        tension: 0.3,         // 少し滑らかな曲線
+        pointRadius: 3,
+        pointHoverRadius: 5,
+        spanGaps: false,
+        fill: true            // 面グラフとして塗りつぶす
       }
     } else {
       return {
@@ -177,7 +192,7 @@ const chartOptions = {
       position: 'left' as const,
       title: {
         display: true,
-        text: '回数'
+        text: '回数/人数'
       },
       beginAtZero: true,
       grid: {
