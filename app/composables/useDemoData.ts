@@ -549,31 +549,82 @@ export const useDemoData = () => {
   const getMonthlyTrendData = () => {
     const monthMap = new Map<string, {
       playCount: number
+      clearCount: number  // スコア70以上をクリアとみなす
       totalScore: number
+      scoreCount: number
     }>()
 
     allSessions.value.forEach(session => {
-      const month = `${session.date.getFullYear()}/${String(session.date.getMonth() + 1).padStart(2, '0')}`
-      const existing = monthMap.get(month)
+      // 元の実装と同じフォーマット: "YYYY-MM"
+      const monthKey = `${session.date.getFullYear()}-${String(session.date.getMonth() + 1).padStart(2, '0')}`
+      const existing = monthMap.get(monthKey)
 
       if (existing) {
         existing.playCount++
+        if (session.score >= 70) existing.clearCount++
         existing.totalScore += session.score
+        existing.scoreCount++
       } else {
-        monthMap.set(month, {
+        monthMap.set(monthKey, {
           playCount: 1,
-          totalScore: session.score
+          clearCount: session.score >= 70 ? 1 : 0,
+          totalScore: session.score,
+          scoreCount: 1
         })
       }
     })
 
     // 月順にソート
-    const sortedEntries = Array.from(monthMap.entries()).sort((a, b) => a[0].localeCompare(b[0]))
+    const sortedMonths = Array.from(monthMap.keys()).sort()
+
+    // 最小6ヶ月表示の処理
+    let months = [...sortedMonths]
+    if (months.length > 0 && months.length < 6) {
+      const monthsToAdd = 6 - months.length
+      const [year, month] = months[0].split('-').map(Number)
+      const startDate = new Date(year, month - 1, 1)
+
+      // 前の月を追加
+      const allMonths: string[] = []
+      for (let i = monthsToAdd; i > 0; i--) {
+        const targetDate = new Date(startDate)
+        targetDate.setMonth(startDate.getMonth() - i)
+        const monthKey = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}`
+        allMonths.push(monthKey)
+      }
+      months = [...allMonths, ...months]
+    }
+
+    // ラベルを「X月」形式に変換
+    const labels = months.map(m => {
+      const [, month] = m.split('-')
+      return `${parseInt(month)}月`
+    })
+
+    // データ準備（データがない月はnullを使用 - 折れ線グラフで線がつながらない）
+    const playCountData = months.map(m => {
+      const data = monthMap.get(m)
+      return data ? data.playCount : null
+    })
+
+    const clearCountData = months.map(m => {
+      const data = monthMap.get(m)
+      return data ? data.clearCount : null
+    })
+
+    const avgScoreData = months.map(m => {
+      const data = monthMap.get(m)
+      if (data && data.scoreCount > 0) {
+        return parseFloat((data.totalScore / data.scoreCount).toFixed(1))
+      }
+      return 0  // 棒グラフは0で表示
+    })
 
     return {
-      labels: sortedEntries.map(([month]) => month),
-      playCountData: sortedEntries.map(([_, stats]) => stats.playCount),
-      avgScoreData: sortedEntries.map(([_, stats]) => Math.round(stats.totalScore / stats.playCount))
+      labels,
+      playCountData,
+      clearCountData,
+      avgScoreData
     }
   }
 

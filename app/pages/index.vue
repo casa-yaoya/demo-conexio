@@ -343,7 +343,7 @@
                 <td colspan="6" class="text-center text-gray-600">データがありません</td>
               </tr>
               <tr v-for="item in sortedRankingData" :key="item.rank">
-                <td>{{ item.rank }}</td>
+                <td class="rank-cell" :class="getRankClass(item.rank)">{{ item.rank }}位</td>
                 <td>{{ item.player }}</td>
                 <td>{{ item.org }}</td>
                 <td>{{ item.totalScore }}</td>
@@ -389,7 +389,7 @@
                 <td colspan="6" class="text-center text-gray-600">データがありません</td>
               </tr>
               <tr v-for="(session, index) in sortedLogData" :key="index">
-                <td>{{ formatDate(session.date) }}</td>
+                <td>{{ formatDateTime(session.date) }}</td>
                 <td>{{ session.player }}</td>
                 <td>{{ session.lesson }}</td>
                 <td>{{ session.score }}</td>
@@ -1470,6 +1470,14 @@ const selectedCharacterIcon = computed(() => {
   return characterIcons[selectedCharacter.value as keyof typeof characterIcons] || '👔'
 })
 
+// ランキング順位のクラス名を返す
+const getRankClass = (rank: number): string => {
+  if (rank === 1) return 'rank-1'
+  if (rank === 2) return 'rank-2'
+  if (rank === 3) return 'rank-3'
+  return ''
+}
+
 // ページ読み込み時にデータを自動的に読み込む
 onMounted(async () => {
   try {
@@ -1570,16 +1578,28 @@ const trendChartDatasets = computed(() => {
   const data = getMonthlyTrendData()
   return [
     {
-      label: 'プレイ数',
+      label: 'プレイ回数',
       data: data.playCountData,
+      type: 'line' as const,
       borderColor: '#3b82f6',
-      backgroundColor: 'rgba(59, 130, 246, 0.1)'
+      backgroundColor: 'transparent',
+      yAxisID: 'y'
+    },
+    {
+      label: 'クリア回数',
+      data: data.clearCountData,
+      type: 'line' as const,
+      borderColor: '#10b981',
+      backgroundColor: 'transparent',
+      yAxisID: 'y'
     },
     {
       label: '平均スコア',
       data: data.avgScoreData,
-      borderColor: '#10b981',
-      backgroundColor: 'rgba(16, 185, 129, 0.1)'
+      type: 'bar' as const,
+      borderColor: '#f97316',
+      backgroundColor: 'rgba(251, 146, 60, 0.6)',
+      yAxisID: 'y1'
     }
   ]
 })
@@ -1652,10 +1672,30 @@ const formatDate = (date: Date) => {
   return new Date(date).toLocaleDateString('ja-JP')
 }
 
+// ログビュー用: 日時を "YYYY/MM/DD HH:mm" 形式でJST表示
+const formatDateTime = (date: Date) => {
+  const d = new Date(date)
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  const hours = String(d.getHours()).padStart(2, '0')
+  const minutes = String(d.getMinutes()).padStart(2, '0')
+  return `${year}/${month}/${day} ${hours}:${minutes}`
+}
+
 const formatTime = (seconds: number) => {
-  const mins = Math.floor(seconds / 60)
+  const hours = Math.floor(seconds / 3600)
+  const mins = Math.floor((seconds % 3600) / 60)
   const secs = Math.floor(seconds % 60)
-  return `${mins}:${secs.toString().padStart(2, '0')}`
+
+  // 時間がある場合は「◯時間◯分◯秒」、ない場合は「◯分◯秒」
+  if (hours > 0) {
+    return `${hours}時間${mins}分${secs}秒`
+  } else if (mins > 0) {
+    return `${mins}分${secs}秒`
+  } else {
+    return `${secs}秒`
+  }
 }
 
 // プレイヤー詳細を表示

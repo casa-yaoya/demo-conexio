@@ -2030,3 +2030,26 @@ button, a {
   margin-top: 12px;
   margin-bottom: 12px;
 }
+
+/* ============================ */
+/* Ranking Styles - 1-3位の特別表示 */
+/* ============================ */
+.rank-cell {
+  font-weight: 700;
+  text-align: center;
+}
+
+.rank-cell.rank-1 {
+  background: linear-gradient(135deg, #fef08a 0%, #fcd34d 100%);
+  color: #92400e;
+}
+
+.rank-cell.rank-2 {
+  background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
+  color: #374151;
+}
+
+.rank-cell.rank-3 {
+  background: linear-gradient(135deg, #fed7aa 0%, #fb923c 100%);
+  color: #9a3412;
+}

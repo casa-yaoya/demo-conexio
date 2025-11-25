@@ -192,33 +192,56 @@ async function analyzeAudio(buffer: Buffer, filename: string): Promise<AnalysisR
   }
 }
 
-// Analyze video (extract audio and transcribe)
+// Analyze video using Whisper API
+// 処理ID: FILE-006
+// Note: For large videos, client-side FFmpeg processing is recommended
 async function analyzeVideo(buffer: Buffer, filename: string): Promise<AnalysisResult> {
-  console.log('🎬 Analyzing video...')
+  console.log('🎬 Analyzing video with Whisper API...')
 
   try {
-    // For now, try direct video analysis with Claude
-    const base64Video = buffer.toString('base64')
+    // Create a File object from buffer for Whisper API
     const mimeType = getMimeType(filename)
+    const file = new File([buffer], filename, { type: mimeType })
 
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 16000,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'document',
-              source: {
-                type: 'base64',
-                media_type: mimeType,
-                data: base64Video
-              }
-            },
-            {
-              type: 'text',
-              text: `この動画の音声内容を文字起こししてください。
+    // Send to Whisper API for transcription
+    const transcription = await openai.audio.transcriptions.create({
+      file: file,
+      model: 'whisper-1',
+      language: 'ja'
+    })
+
+    console.log('✅ Video transcription complete via Whisper')
+
+    return {
+      success: true,
+      text: transcription.text
+    }
+  } catch (whisperError: any) {
+    console.warn('Whisper API failed, trying Claude fallback:', whisperError.message)
+
+    // Fallback: try direct video analysis with Claude
+    try {
+      const base64Video = buffer.toString('base64')
+      const mimeType = getMimeType(filename)
+
+      const response = await anthropic.messages.create({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 16000,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'document',
+                source: {
+                  type: 'base64',
+                  media_type: mimeType,
+                  data: base64Video
+                }
+              },
+              {
+                type: 'text',
+                text: `この動画の音声内容を文字起こししてください。
 
 要件：
 1. 発言者が複数いる場合は、発言者を区別
@@ -227,24 +250,25 @@ async function analyzeVideo(buffer: Buffer, filename: string): Promise<AnalysisR
 4. 日本語は正確に書き起こし
 
 動画内の全ての音声内容を正確に文字起こししてください。`
-            }
-          ]
-        }
-      ]
-    })
+              }
+            ]
+          }
+        ]
+      })
 
-    const content = response.content[0]?.type === 'text' ? response.content[0].text : ''
-    console.log('✅ Video transcription complete')
+      const content = response.content[0]?.type === 'text' ? response.content[0].text : ''
+      console.log('✅ Video transcription complete via Claude fallback')
 
-    return {
-      success: true,
-      text: content
-    }
-  } catch (error) {
-    console.error('Video analysis error:', error)
-    return {
-      success: false,
-      error: `動画解析に失敗しました: ${error instanceof Error ? error.message : 'Unknown error'}`
+      return {
+        success: true,
+        text: content
+      }
+    } catch (claudeError) {
+      console.error('Video analysis error:', claudeError)
+      return {
+        success: false,
+        error: `動画解析に失敗しました: ${whisperError.message}`
+      }
     }
   }
 }

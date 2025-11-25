@@ -105,6 +105,66 @@ export async function parsePowerPoint(buffer: Buffer): Promise<FileParseResult> 
 }
 
 /**
+ * Parse Word file and extract text from document
+ * DOCXファイルからテキストを抽出
+ * 処理ID: API-FILE-003
+ */
+export async function parseWord(buffer: Buffer): Promise<FileParseResult> {
+  try {
+    const zip = await JSZip.loadAsync(buffer)
+
+    // document.xmlからテキストを抽出
+    const documentFile = zip.files['word/document.xml']
+    if (!documentFile) {
+      return {
+        success: false,
+        text: '',
+        error: 'Word document.xml not found'
+      }
+    }
+
+    const content = await documentFile.async('text')
+    let extractedText = ''
+
+    // <w:t>タグからテキストを抽出
+    const textMatches = content.match(/<w:t[^>]*>([^<]*)<\/w:t>/g) || []
+    const paragraphs: string[] = []
+    let currentParagraph = ''
+
+    // 段落を検出して整形
+    const paragraphMatches = content.match(/<w:p[^>]*>[\s\S]*?<\/w:p>/g) || []
+
+    for (const paragraph of paragraphMatches) {
+      const texts = paragraph.match(/<w:t[^>]*>([^<]*)<\/w:t>/g) || []
+      const paragraphText = texts
+        .map(t => t.replace(/<w:t[^>]*>/g, '').replace(/<\/w:t>/g, ''))
+        .join('')
+
+      if (paragraphText.trim()) {
+        paragraphs.push(paragraphText.trim())
+      }
+    }
+
+    extractedText = paragraphs.join('\n\n')
+
+    return {
+      success: true,
+      text: extractedText.trim() || '(テキストが抽出できませんでした)',
+      metadata: {
+        type: 'word',
+        paragraphCount: paragraphs.length
+      }
+    }
+  } catch (error) {
+    return {
+      success: false,
+      text: '',
+      error: error instanceof Error ? error.message : 'Word parsing failed'
+    }
+  }
+}
+
+/**
  * Parse text-based files (txt, csv, etc.)
  */
 export function parseText(buffer: Buffer): FileParseResult {
@@ -154,6 +214,15 @@ export async function parseFile(
     ['pptx', 'ppt'].includes(extension)
   ) {
     return await parsePowerPoint(buffer)
+  }
+
+  // Word files
+  if (
+    mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+    mimeType === 'application/msword' ||
+    ['docx', 'doc'].includes(extension)
+  ) {
+    return await parseWord(buffer)
   }
 
   // Text-based files

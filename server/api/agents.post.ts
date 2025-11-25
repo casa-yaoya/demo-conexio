@@ -1,5 +1,5 @@
 import type { AgentRequest, AgentResponse, AgentContext } from '~/types/agent'
-import { getAnthropicClient } from '../utils/anthropic'
+import { getOpenAIClient } from '../utils/openai'
 import { loadPrompt, replacePromptVariables } from '../utils/prompt'
 
 export default defineEventHandler(async (event): Promise<AgentResponse> => {
@@ -53,7 +53,7 @@ export default defineEventHandler(async (event): Promise<AgentResponse> => {
 // Roleplay Support Agent
 async function processRoleplaySupportAgent(context: AgentContext): Promise<AgentResponse> {
   const { userInput, files = [], currentDesign, prompt } = context
-  const anthropic = getAnthropicClient()
+  const openai = getOpenAIClient()
 
   // 新しいプロンプト名を使用（後方互換性あり）
   let systemPrompt = prompt || await loadPrompt('design-assistant')
@@ -77,17 +77,16 @@ ${files.map(f => `- ${f.name}: ${f.summary || '要約なし'}`).join('\n')}
 上記の情報を元に、ロープレ設計を更新し、ユーザーに返答してください。
   `
 
-  const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4o',
     max_tokens: 4096,
-    system: systemPrompt,
-    messages: [{
-      role: 'user',
-      content: userMessage
-    }]
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userMessage }
+    ]
   })
 
-  const responseText = response.content[0].type === 'text' ? response.content[0].text : ''
+  const responseText = response.choices[0]?.message?.content || ''
 
   return {
     response: responseText,
@@ -99,7 +98,7 @@ ${files.map(f => `- ${f.name}: ${f.summary || '要約なし'}`).join('\n')}
 async function processScriptGenerationAgent(agent: string, context: AgentContext): Promise<AgentResponse> {
   const { roleplayDesign, files = [], prompt } = context
   const mode = agent.split('-').pop() || ''
-  const anthropic = getAnthropicClient()
+  const openai = getOpenAIClient()
 
   // 新しいプロンプト名を使用: script-subtitle, script-points, script-practice
   let systemPrompt = prompt || await loadPrompt(`script-${mode}`)
@@ -121,17 +120,16 @@ ${files.map(f => `- ${f.name}: ${f.content || '内容なし'}`).join('\n')}
 JSON形式で出力してください。
   `
 
-  const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4o',
     max_tokens: 4096,
-    system: systemPrompt,
-    messages: [{
-      role: 'user',
-      content: userMessage
-    }]
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userMessage }
+    ]
   })
 
-  const scriptText = response.content[0].type === 'text' ? response.content[0].text : ''
+  const scriptText = response.choices[0]?.message?.content || ''
 
   return {
     mode,
@@ -145,7 +143,7 @@ async function processSystemPromptAgent(agent: string, context: AgentContext): P
   // モード名を取得: subtitle, aiDemo -> demo, confirmation, practice
   const rawMode = agent.split('-').pop() || ''
   const mode = rawMode === 'aiDemo' ? 'demo' : rawMode
-  const anthropic = getAnthropicClient()
+  const openai = getOpenAIClient()
 
   // 新しいプロンプト名を使用: mode-subtitle, mode-demo, mode-confirmation, mode-practice
   let systemPrompt = prompt || await loadPrompt(`mode-${mode}`)
@@ -180,17 +178,16 @@ ${files.map(f => `- ${f.name}: ${f.content || '内容なし'}`).join('\n')}
 プレーンテキストで出力してください。
   `
 
-  const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4o',
     max_tokens: 4096,
-    system: systemPrompt,
-    messages: [{
-      role: 'user',
-      content: userMessage
-    }]
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userMessage }
+    ]
   })
 
-  const promptText = response.content[0].type === 'text' ? response.content[0].text : ''
+  const promptText = response.choices[0]?.message?.content || ''
 
   return {
     mode: rawMode, // 元のモード名を返す（後方互換性）
@@ -201,7 +198,7 @@ ${files.map(f => `- ${f.name}: ${f.content || '内容なし'}`).join('\n')}
 // Feedback Agent
 async function processFeedbackAgent(context: AgentContext): Promise<AgentResponse> {
   const { roleplayDesign, conversationLog, mode, prompt } = context
-  const anthropic = getAnthropicClient()
+  const openai = getOpenAIClient()
 
   // 新しいプロンプト名を使用
   let systemPrompt = prompt || await loadPrompt('feedback')
@@ -225,17 +222,16 @@ ${conversationLog}
 JSON形式で出力してください。
   `
 
-  const response = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4o',
     max_tokens: 4096,
-    system: systemPrompt,
-    messages: [{
-      role: 'user',
-      content: userMessage
-    }]
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userMessage }
+    ]
   })
 
-  const feedbackText = response.content[0].type === 'text' ? response.content[0].text : ''
+  const feedbackText = response.choices[0]?.message?.content || ''
 
   try {
     const jsonMatch = feedbackText.match(/\{[\s\S]*\}/)
