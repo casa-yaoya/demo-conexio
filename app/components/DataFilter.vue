@@ -1,18 +1,24 @@
 <template>
-  <div class="data-filter" :class="{ collapsed: !isFilterPanelOpen }">
+  <div class="data-filter" :class="{ collapsed: !isFilterPanelOpen, 'mobile-collapsed': !isFilterPanelOpen && isMobile }">
     <!-- フィルターヘッダー（開いている時） -->
     <div v-if="isFilterPanelOpen" class="filter-header" @click="toggleFilterPanel">
       <UIcon name="i-lucide-filter" class="filter-header-icon" />
       <h2 class="filter-title">フィルター</h2>
       <UIcon
-        name="i-lucide-chevron-left"
+        :name="isMobile ? 'i-lucide-chevron-up' : 'i-lucide-chevron-left'"
         class="filter-toggle-icon"
       />
     </div>
-    <!-- 折りたたみ時のアイコン表示 -->
-    <div v-else class="filter-collapsed-header" @click="toggleFilterPanel">
+    <!-- 折りたたみ時のアイコン表示（PC用：横） -->
+    <div v-else-if="!isMobile" class="filter-collapsed-header" @click="toggleFilterPanel">
       <UIcon name="i-lucide-filter" class="filter-collapsed-icon" />
       <UIcon name="i-lucide-chevron-right" class="filter-collapsed-arrow" />
+    </div>
+    <!-- 折りたたみ時のアイコン表示（スマホ用：横一列） -->
+    <div v-else class="filter-collapsed-header-mobile" @click="toggleFilterPanel">
+      <UIcon name="i-lucide-filter" class="filter-collapsed-icon" />
+      <span class="filter-collapsed-text">フィルターを開く</span>
+      <UIcon name="i-lucide-chevron-down" class="filter-collapsed-arrow" />
     </div>
 
     <div v-show="isFilterPanelOpen" class="filter-body">
@@ -224,6 +230,20 @@ const emit = defineEmits<{
 
 // フィルターパネル全体の開閉状態
 const isFilterPanelOpen = ref(true)
+
+// スマホ判定
+const isMobile = ref(false)
+
+onMounted(() => {
+  const checkMobile = () => {
+    isMobile.value = window.innerWidth <= 768
+  }
+  checkMobile()
+  window.addEventListener('resize', checkMobile)
+  onUnmounted(() => {
+    window.removeEventListener('resize', checkMobile)
+  })
+})
 
 const toggleFilterPanel = () => {
   isFilterPanelOpen.value = !isFilterPanelOpen.value
@@ -648,6 +668,31 @@ defineExpose({
 .filter-collapsed-arrow {
   font-size: 14px;
   color: var(--ui-text-dimmed);
+}
+
+/* スマホ用折りたたみヘッダー（横一列） */
+.filter-collapsed-header-mobile {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--ui-bg-elevated);
+  border-radius: var(--ui-radius);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1px solid var(--ui-border);
+}
+
+.filter-collapsed-header-mobile:hover {
+  border-color: var(--ui-primary);
+}
+
+.filter-collapsed-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ui-text);
 }
 
 .filter-body {

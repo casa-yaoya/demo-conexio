@@ -1485,13 +1485,15 @@ body {
     font-size: 13px;
   }
 
-  /* サマリーコンテナ - フィルターを非表示/折りたたみ */
+  /* サマリーコンテナ - 縦方向レイアウト */
   .summary-container {
     flex-direction: column;
     height: auto;
     min-height: calc(100vh - 64px);
+    overflow: visible;
   }
 
+  /* フィルターエリア（スマホ） */
   .summary-filters {
     width: 100%;
     height: auto;
@@ -1499,16 +1501,28 @@ body {
     border-right: none;
     border-bottom: 1px solid #e2e8f0;
     padding: 0.75rem;
+    overflow: visible;
   }
 
   .summary-filters-sticky {
     min-width: 0;
+    height: auto;
+    overflow: visible;
+  }
+
+  /* フィルター折りたたみ時（スマホ） */
+  .summary-container.filter-collapsed .summary-filters {
+    width: 100%;
+    padding: 0.75rem;
+    border-bottom: 1px solid #e2e8f0;
   }
 
   .summary-content {
     height: auto;
     min-height: 0;
     padding: 0.75rem;
+    flex: 1;
+    overflow-y: auto;
   }
 
   /* テーブルをスクロール可能に */
