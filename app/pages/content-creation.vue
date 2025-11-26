@@ -29,8 +29,13 @@
       <!-- タブナビゲーション -->
       <UTabs
         :items="operationTabItems"
-        v-model="operationTabIndex"
-        class="cc-operation-tabs"
+        v-model="operationTab"
+        class="w-full"
+        :ui="{
+          list: 'bg-slate-50 border-b border-slate-200',
+          trigger: 'flex-1 py-3 px-4 text-sm font-semibold text-slate-500 bg-transparent data-[state=active]:text-sky-500 data-[state=active]:bg-white data-[state=active]:shadow-none relative after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-transparent data-[state=active]:after:bg-sky-500',
+          indicator: 'hidden'
+        }"
       />
 
       <!-- チャットタブ -->
@@ -146,7 +151,7 @@
     </div>
 
     <!-- プレイコンポーネント (Right Column Top) -->
-    <div class="cc-panel cc-play-component" :class="{ collapsed: playComponentCollapsed }">
+    <div class="cc-panel cc-play-component">
       <!-- プレイエリアヘッダー -->
       <div class="cc-play-header">
         <div class="cc-lesson-selector">
@@ -214,11 +219,12 @@
                 ref="characterVideoRef"
                 id="characterVideo"
                 class="cc-character-video"
+                src="/idle.webm"
                 loop
                 muted
+                autoplay
                 playsinline
               ></video>
-              <div class="cc-character" id="character" :class="{ 'cc-character-speaking': isSpeaking }">👔</div>
 
               <!-- Connection Status -->
               <div class="cc-video-connection-status">
@@ -292,25 +298,16 @@
     </div>
 
     <!-- 設計コンポーネント (Right Column Bottom) -->
-    <div class="cc-panel cc-design-component" :class="{ expanded: playComponentCollapsed }">
-      <!-- テストエリア開閉ボタン -->
-      <UButton
-        variant="ghost"
-        color="neutral"
-        size="sm"
-        class="cc-play-toggle-button"
-        @click="togglePlayComponent"
-      >
-        <span class="cc-play-toggle-icon" :class="{ rotated: playComponentCollapsed }">▲</span>
-        <span class="cc-play-toggle-text">
-          {{ playComponentCollapsed ? 'テストエリアを開く' : 'テストエリアを閉じる' }}
-        </span>
-      </UButton>
-
+    <div class="cc-panel cc-design-component">
       <UTabs
         :items="designTabItems"
-        v-model="designTabIndex"
-        class="cc-tabs"
+        v-model="designTab"
+        class="w-full"
+        :ui="{
+          list: 'bg-slate-50 border-b border-slate-200',
+          trigger: 'flex-1 py-3 px-4 text-sm font-semibold text-slate-500 bg-transparent data-[state=active]:text-sky-500 data-[state=active]:bg-white data-[state=active]:shadow-none relative after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-transparent data-[state=active]:after:bg-sky-500',
+          indicator: 'hidden'
+        }"
       />
 
       <!-- ロープレ設計コンポーネント (Tab 1) -->
@@ -453,17 +450,12 @@ const operationTabItems = [
   { label: 'コース', value: 'course' },
   { label: 'ファイル', value: 'files' }
 ]
-const operationTabIndex = computed({
-  get: () => operationTabItems.findIndex(item => item.value === operationTab.value),
-  set: (index: number) => { operationTab.value = operationTabItems[index].value }
-})
 
 const selectedLesson = ref('')
 const selectedMode = ref('confirmation')
 const selectedCharacter = ref('businessman')
 const selectedVoice = ref<'alloy' | 'echo' | 'shimmer' | 'ash' | 'ballad' | 'coral' | 'sage' | 'verse'>('alloy')
 const designTab = ref('diagram')
-const playComponentCollapsed = ref(false)
 
 // Design Tab Items for UTabs
 const designTabItems = [
@@ -471,10 +463,6 @@ const designTabItems = [
   { label: '会話の流れ', value: 'script' },
   { label: '設計書', value: 'config' }
 ]
-const designTabIndex = computed({
-  get: () => designTabItems.findIndex(item => item.value === designTab.value),
-  set: (index: number) => { designTab.value = designTabItems[index].value }
-})
 
 // Select options for USelect components
 const categoryOptions = [
@@ -644,9 +632,6 @@ const roleplayDesignForm = ref<any>(null)
 const chatAreaRef = ref<any>(null)
 
 // Methods
-const togglePlayComponent = () => {
-  playComponentCollapsed.value = !playComponentCollapsed.value
-}
 
 // Toggle roleplay - now uses Realtime API
 const toggleRoleplay = async () => {
