@@ -15,27 +15,46 @@
       <div class="nav-section">
         <span class="nav-section-title">メニュー</span>
         <div class="nav-items">
-          <button
+          <UButton
             v-for="item in navigationItems"
             :key="item.name"
+            variant="ghost"
+            color="neutral"
             class="nav-item"
             :class="{ 'active': isActive(item) }"
+            :ui="{
+              base: 'w-full justify-start'
+            }"
             @click="switchView(item)"
           >
-            <UIcon :name="item.icon" class="nav-icon" />
+            <template #leading>
+              <UIcon :name="item.icon" class="nav-icon" />
+            </template>
             <span class="nav-label">{{ item.name }}</span>
-            <span v-if="item.badge" class="nav-badge">{{ item.badge }}</span>
-          </button>
+            <template v-if="item.badge" #trailing>
+              <UBadge color="warning" variant="solid" size="xs">{{ item.badge }}</UBadge>
+            </template>
+          </UButton>
         </div>
       </div>
     </nav>
 
     <!-- サイドバーフッター -->
     <div class="sidebar-footer">
-      <button class="nav-item logout-item" @click="handleLogout">
-        <UIcon name="i-lucide-log-out" class="nav-icon" />
+      <UButton
+        variant="ghost"
+        color="neutral"
+        class="nav-item logout-item"
+        :ui="{
+          base: 'w-full justify-start'
+        }"
+        @click="handleLogout"
+      >
+        <template #leading>
+          <UIcon name="i-lucide-log-out" class="nav-icon" />
+        </template>
         <span class="nav-label">ログアウト</span>
-      </button>
+      </UButton>
     </div>
   </aside>
 </template>
@@ -78,10 +97,7 @@ const handleLogout = () => {
 <style scoped>
 .sidebar-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   background: rgba(15, 23, 42, 0.5);
   z-index: 99;
   backdrop-filter: blur(2px);
@@ -136,18 +152,11 @@ const handleLogout = () => {
   gap: 4px;
 }
 
+/* ナビゲーションボタン - UButton をカスタマイズ */
 .nav-item {
-  display: flex;
-  align-items: center;
   gap: 12px;
   padding: 12px 16px;
   border-radius: 8px;
-  border: none;
-  background: transparent;
-  width: 100%;
-  text-align: left;
-  cursor: pointer;
-  transition: all 0.2s ease;
   font-size: 14px;
   font-weight: 500;
   color: #475569;
@@ -178,15 +187,6 @@ const handleLogout = () => {
 
 .nav-label {
   flex: 1;
-}
-
-.nav-badge {
-  font-size: 10px;
-  font-weight: 600;
-  padding: 2px 8px;
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-  color: white;
-  border-radius: 10px;
 }
 
 /* サイドバーフッター */

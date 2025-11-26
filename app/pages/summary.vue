@@ -576,10 +576,13 @@ onMounted(async () => {
 }
 
 /* ========================================
-   統計カード
+   統計カード - Nuxt UI Dashboard Style
    ======================================== */
 .stats-card {
-  border-left: 4px solid #0ea5e9;
+  background: var(--ui-bg);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius);
+  box-shadow: var(--ui-shadow-sm);
 }
 
 .stats-header-row {
@@ -587,90 +590,87 @@ onMounted(async () => {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 20px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--ui-border);
 }
 
 .stats-header {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--ui-text-highlighted);
 }
 
 .stats-header-icon {
-  font-size: 20px;
-  color: #0ea5e9;
+  font-size: 18px;
+  color: var(--ui-primary);
 }
 
 .stats-period {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
-  color: #64748b;
-  background: #f1f5f9;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ui-text-muted);
+  background: var(--ui-bg-elevated);
   padding: 6px 12px;
-  border-radius: 20px;
+  border-radius: var(--ui-radius);
+  border: 1px solid var(--ui-border);
 }
 
 .period-icon {
   font-size: 14px;
-  color: #94a3b8;
+  color: var(--ui-text-dimmed);
 }
 
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
+  gap: 12px;
 }
 
 .stat-item {
   display: flex;
-  align-items: flex-start;
-  gap: 14px;
+  align-items: center;
+  gap: 12px;
   padding: 16px;
-  background: #f8fafc;
-  border-radius: 12px;
-  border-left: 3px solid transparent;
-  transition: all 0.2s ease;
+  background: var(--ui-bg-elevated);
+  border-radius: var(--ui-radius);
+  border: 1px solid var(--ui-border);
+  transition: all 0.15s ease;
 }
 
 .stat-item:hover {
-  background: #f1f5f9;
-  transform: translateY(-2px);
+  border-color: var(--ui-border-accented);
+  background: var(--ui-bg-accented);
 }
 
-.stat-time { border-left-color: #0ea5e9; }
-.stat-play { border-left-color: #10b981; }
-.stat-players { border-left-color: #8b5cf6; }
-.stat-lessons { border-left-color: #f59e0b; }
-
 .stat-icon-wrapper {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--ui-radius);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
 
-.stat-time .stat-icon-wrapper { background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%); }
-.stat-play .stat-icon-wrapper { background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); }
-.stat-players .stat-icon-wrapper { background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%); }
-.stat-lessons .stat-icon-wrapper { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); }
+.stat-time .stat-icon-wrapper { background: rgba(14, 165, 233, 0.1); }
+.stat-play .stat-icon-wrapper { background: rgba(16, 185, 129, 0.1); }
+.stat-players .stat-icon-wrapper { background: rgba(139, 92, 246, 0.1); }
+.stat-lessons .stat-icon-wrapper { background: rgba(245, 158, 11, 0.1); }
 
 .stat-icon {
-  font-size: 22px;
+  font-size: 20px;
 }
 
-.stat-time .stat-icon { color: #0284c7; }
-.stat-play .stat-icon { color: #059669; }
-.stat-players .stat-icon { color: #7c3aed; }
-.stat-lessons .stat-icon { color: #d97706; }
+.stat-time .stat-icon { color: #0ea5e9; }
+.stat-play .stat-icon { color: #10b981; }
+.stat-players .stat-icon { color: #8b5cf6; }
+.stat-lessons .stat-icon { color: #f59e0b; }
 
 .stat-content {
   flex: 1;
@@ -680,22 +680,25 @@ onMounted(async () => {
 .stats-label {
   font-size: 12px;
   font-weight: 500;
-  color: #64748b;
-  margin-bottom: 4px;
+  color: var(--ui-text-muted);
+  margin-bottom: 2px;
 }
 
 .stats-value {
-  font-size: 22px;
-  font-weight: 700;
-  color: #1e293b;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--ui-text-highlighted);
   line-height: 1.2;
 }
 
 /* ========================================
-   チャートカード
+   チャートカード - Nuxt UI Dashboard Style
    ======================================== */
 .chart-card {
-  border-left: 4px solid #8b5cf6;
+  background: var(--ui-bg);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius);
+  box-shadow: var(--ui-shadow-sm);
 }
 
 .chart-header-row {
@@ -703,21 +706,21 @@ onMounted(async () => {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--ui-border);
 }
 
 .chart-header {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--ui-text-highlighted);
 }
 
 .chart-header-icon {
-  font-size: 20px;
+  font-size: 18px;
   color: #8b5cf6;
 }
 
@@ -728,10 +731,11 @@ onMounted(async () => {
   align-items: center;
   margin-bottom: 16px;
   padding: 12px 16px;
-  background: #f8fafc;
-  border-radius: 8px;
+  background: var(--ui-bg-elevated);
+  border-radius: var(--ui-radius);
   flex-wrap: wrap;
   gap: 12px;
+  border: 1px solid var(--ui-border);
 }
 
 .chart-settings-left {
@@ -750,35 +754,35 @@ onMounted(async () => {
 .chart-visibility-toggles {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
 }
 
 .chart-toggle-item {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
+  padding: 6px 10px;
+  background: var(--ui-bg);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.15s ease;
   font-size: 12px;
 }
 
 .chart-toggle-item:hover {
-  border-color: #cbd5e1;
-  background: #f8fafc;
+  border-color: var(--ui-border-accented);
+  background: var(--ui-bg-accented);
 }
 
 .chart-toggle-item.active {
-  border-color: #94a3b8;
-  background: white;
+  border-color: var(--ui-primary);
+  background: rgba(var(--color-primary-500), 0.1);
 }
 
 .toggle-label {
   font-weight: 500;
-  transition: color 0.2s;
+  transition: color 0.15s;
 }
 
 .chart-setting-item {
@@ -788,36 +792,39 @@ onMounted(async () => {
 }
 
 .chart-setting-label {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
-  color: #475569;
+  color: var(--ui-text-muted);
   white-space: nowrap;
 }
 
 /* ========================================
-   テーブルカード
+   テーブルカード - Nuxt UI Dashboard Style
    ======================================== */
 .table-card {
-  border-left: 4px solid #10b981;
+  background: var(--ui-bg);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius);
+  box-shadow: var(--ui-shadow-sm);
 }
 
 .table-card-header {
   margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--ui-border);
 }
 
 .table-title {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--ui-text-highlighted);
 }
 
 .table-title-icon {
-  font-size: 20px;
+  font-size: 18px;
   color: #10b981;
 }
 
@@ -827,21 +834,22 @@ onMounted(async () => {
   align-items: center;
   margin-bottom: 16px;
   padding: 12px 16px;
-  background: #f8fafc;
-  border-radius: 8px;
+  background: var(--ui-bg-elevated);
+  border-radius: var(--ui-radius);
+  border: 1px solid var(--ui-border);
 }
 
 .table-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 /* 表示設定 */
 .display-settings-row {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 20px;
 }
 
 .display-setting-item {
@@ -852,13 +860,13 @@ onMounted(async () => {
 
 .setting-icon {
   font-size: 16px;
-  color: #94a3b8;
+  color: var(--ui-text-dimmed);
 }
 
 .display-setting-label {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
-  color: #475569;
+  color: var(--ui-text-muted);
   white-space: nowrap;
 }
 
@@ -874,15 +882,15 @@ onMounted(async () => {
   gap: 8px;
   font-size: 12px;
   font-weight: 600;
-  color: #64748b;
+  color: var(--ui-text-muted);
   padding: 8px 12px;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--ui-border);
   margin-bottom: 4px;
 }
 
 .column-icon {
   font-size: 14px;
-  color: #94a3b8;
+  color: var(--ui-text-dimmed);
 }
 
 .column-option {
@@ -891,14 +899,15 @@ onMounted(async () => {
   gap: 10px;
   padding: 8px 12px;
   font-size: 13px;
-  color: #475569;
+  font-weight: 500;
+  color: var(--ui-text);
   cursor: pointer;
-  border-radius: 6px;
-  transition: background 0.15s ease;
+  border-radius: var(--ui-radius);
+  transition: all 0.15s ease;
 }
 
 .column-option:hover {
-  background: #f1f5f9;
+  background: var(--ui-bg-elevated);
 }
 
 /* データテーブル */
@@ -908,7 +917,7 @@ onMounted(async () => {
 
 .data-table th,
 .data-table td {
-  padding: 10px 12px;
+  padding: 12px 14px;
 }
 
 /* ========================================
@@ -927,7 +936,7 @@ onMounted(async () => {
 
   .display-settings-row {
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
     align-items: flex-start;
     width: 100%;
   }
@@ -944,7 +953,7 @@ onMounted(async () => {
   }
 
   .stat-item {
-    padding: 12px;
+    padding: 14px;
   }
 
   .stats-value {
@@ -954,7 +963,16 @@ onMounted(async () => {
   .stats-header-row {
     flex-direction: column;
     align-items: flex-start;
-    gap: 8px;
+    gap: 10px;
+  }
+
+  .chart-settings {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .chart-settings-right {
+    width: 100%;
   }
 }
 </style>

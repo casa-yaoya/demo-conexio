@@ -27,38 +27,11 @@
       </div>
 
       <!-- タブナビゲーション -->
-      <div class="cc-operation-tabs">
-        <UButton
-          variant="ghost"
-          color="neutral"
-          size="sm"
-          class="cc-operation-tab"
-          :class="{ active: operationTab === 'chat' }"
-          @click="operationTab = 'chat'"
-        >
-          チャット
-        </UButton>
-        <UButton
-          variant="ghost"
-          color="neutral"
-          size="sm"
-          class="cc-operation-tab"
-          :class="{ active: operationTab === 'course' }"
-          @click="operationTab = 'course'"
-        >
-          コース
-        </UButton>
-        <UButton
-          variant="ghost"
-          color="neutral"
-          size="sm"
-          class="cc-operation-tab"
-          :class="{ active: operationTab === 'files' }"
-          @click="operationTab = 'files'"
-        >
-          ファイル
-        </UButton>
-      </div>
+      <UTabs
+        :items="operationTabItems"
+        v-model="operationTabIndex"
+        class="cc-operation-tabs"
+      />
 
       <!-- チャットタブ -->
       <div v-show="operationTab === 'chat'" class="cc-operation-tab-content active">
@@ -334,38 +307,11 @@
         </span>
       </UButton>
 
-      <div class="cc-tabs">
-        <UButton
-          variant="ghost"
-          color="neutral"
-          size="sm"
-          class="cc-tab"
-          :class="{ active: designTab === 'diagram' }"
-          @click="designTab = 'diagram'"
-        >
-          ロープレ設計
-        </UButton>
-        <UButton
-          variant="ghost"
-          color="neutral"
-          size="sm"
-          class="cc-tab"
-          :class="{ active: designTab === 'script' }"
-          @click="designTab = 'script'"
-        >
-          会話の流れ
-        </UButton>
-        <UButton
-          variant="ghost"
-          color="neutral"
-          size="sm"
-          class="cc-tab"
-          :class="{ active: designTab === 'config' }"
-          @click="designTab = 'config'"
-        >
-          設計書
-        </UButton>
-      </div>
+      <UTabs
+        :items="designTabItems"
+        v-model="designTabIndex"
+        class="cc-tabs"
+      />
 
       <!-- ロープレ設計コンポーネント (Tab 1) -->
       <div v-show="designTab === 'diagram'" class="cc-tab-content active">
@@ -500,12 +446,35 @@ const {
 // State
 const selectedCategory = ref('sales-basics')
 const operationTab = ref('chat')
+
+// Operation Tab Items for UTabs
+const operationTabItems = [
+  { label: 'チャット', value: 'chat' },
+  { label: 'コース', value: 'course' },
+  { label: 'ファイル', value: 'files' }
+]
+const operationTabIndex = computed({
+  get: () => operationTabItems.findIndex(item => item.value === operationTab.value),
+  set: (index: number) => { operationTab.value = operationTabItems[index].value }
+})
+
 const selectedLesson = ref('')
 const selectedMode = ref('confirmation')
 const selectedCharacter = ref('businessman')
 const selectedVoice = ref<'alloy' | 'echo' | 'shimmer' | 'ash' | 'ballad' | 'coral' | 'sage' | 'verse'>('alloy')
 const designTab = ref('diagram')
 const playComponentCollapsed = ref(false)
+
+// Design Tab Items for UTabs
+const designTabItems = [
+  { label: 'ロープレ設計', value: 'diagram' },
+  { label: '会話の流れ', value: 'script' },
+  { label: '設計書', value: 'config' }
+]
+const designTabIndex = computed({
+  get: () => designTabItems.findIndex(item => item.value === designTab.value),
+  set: (index: number) => { designTab.value = designTabItems[index].value }
+})
 
 // Select options for USelect components
 const categoryOptions = [

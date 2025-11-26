@@ -339,37 +339,40 @@ onMounted(async () => {
 
 <style scoped>
 /* ========================================
-   ログカード
+   ログカード - Nuxt UI Dashboard Style
    ======================================== */
 .log-card {
-  border-left: 4px solid #6366f1;
+  background: var(--ui-bg);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius);
+  box-shadow: var(--ui-shadow-sm);
 }
 
 .log-card-header {
   margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--ui-border);
 }
 
 .log-title {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--ui-text-highlighted);
   margin-bottom: 4px;
 }
 
 .log-title-icon {
-  font-size: 20px;
+  font-size: 18px;
   color: #6366f1;
 }
 
 .log-subtitle {
-  font-size: 13px;
-  color: #64748b;
-  margin-left: 30px;
+  font-size: 12px;
+  color: var(--ui-text-muted);
+  margin-left: 28px;
 }
 
 .log-toolbar {
@@ -378,14 +381,15 @@ onMounted(async () => {
   align-items: center;
   margin-bottom: 16px;
   padding: 12px 16px;
-  background: #f8fafc;
-  border-radius: 8px;
+  background: var(--ui-bg-elevated);
+  border-radius: var(--ui-radius);
+  border: 1px solid var(--ui-border);
 }
 
 .log-info {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .info-badge,
@@ -393,13 +397,13 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
-  color: #475569;
-  background: white;
+  color: var(--ui-text);
+  background: var(--ui-bg);
   padding: 6px 12px;
-  border-radius: 20px;
-  border: 1px solid #e2e8f0;
+  border-radius: var(--ui-radius);
+  border: 1px solid var(--ui-border);
 }
 
 .info-icon {
@@ -410,7 +414,7 @@ onMounted(async () => {
 .table-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 /* 列設定ポップアップ */
@@ -425,15 +429,15 @@ onMounted(async () => {
   gap: 8px;
   font-size: 12px;
   font-weight: 600;
-  color: #64748b;
+  color: var(--ui-text-muted);
   padding: 8px 12px;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--ui-border);
   margin-bottom: 4px;
 }
 
 .column-icon {
   font-size: 14px;
-  color: #94a3b8;
+  color: var(--ui-text-dimmed);
 }
 
 .column-option {
@@ -442,14 +446,15 @@ onMounted(async () => {
   gap: 10px;
   padding: 8px 12px;
   font-size: 13px;
-  color: #475569;
+  font-weight: 500;
+  color: var(--ui-text);
   cursor: pointer;
-  border-radius: 6px;
-  transition: background 0.15s ease;
+  border-radius: var(--ui-radius);
+  transition: all 0.15s ease;
 }
 
 .column-option:hover {
-  background: #f1f5f9;
+  background: var(--ui-bg-elevated);
 }
 
 /* ========================================
@@ -459,34 +464,34 @@ onMounted(async () => {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 16px;
-  margin-top: 20px;
+  gap: 12px;
+  margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid var(--ui-border);
 }
 
 .pagination-info {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  color: #64748b;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--ui-text-muted);
 }
 
 .pagination-current {
   font-weight: 600;
-  color: #6366f1;
-  background: #eef2ff;
+  color: var(--ui-primary);
+  background: rgba(99, 102, 241, 0.1);
   padding: 4px 10px;
-  border-radius: 6px;
+  border-radius: var(--ui-radius);
 }
 
 .pagination-divider {
-  color: #cbd5e1;
+  color: var(--ui-text-dimmed);
 }
 
 .pagination-total {
-  color: #475569;
+  color: var(--ui-text);
 }
 
 /* ========================================
@@ -499,11 +504,11 @@ onMounted(async () => {
 }
 
 .sortable:hover {
-  background-color: #eef2ff;
+  background: var(--ui-bg-elevated);
 }
 
 .sortable.sorted {
-  background-color: #e0e7ff;
+  background: rgba(99, 102, 241, 0.08);
 }
 
 .th-content {
@@ -514,7 +519,7 @@ onMounted(async () => {
 
 .sort-icon {
   font-size: 10px;
-  color: #cbd5e1;
+  color: var(--ui-text-dimmed);
   margin-left: 4px;
   transition: color 0.15s ease;
 }

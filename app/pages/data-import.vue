@@ -1,27 +1,51 @@
 <template>
   <div class="p-5">
-    <UCard>
-      <template #header>
-        <h2 class="text-lg font-semibold text-gray-800">データ読込</h2>
-      </template>
+    <UCard class="import-card">
+      <div class="import-header">
+        <div class="import-title">
+          <UIcon name="i-lucide-database" class="import-title-icon" />
+          データ読込
+        </div>
+        <div class="import-subtitle">CSVファイルまたはデモデータからデータを読み込みます</div>
+      </div>
 
       <!-- Current Data Info -->
-      <div class="data-info-grid mb-6">
-        <div>
-          <div class="data-info-label">総レコード数</div>
-          <div class="data-info-value">{{ dataStats.recordCount.toLocaleString() }}</div>
+      <div class="data-stats-grid">
+        <div class="data-stat-item">
+          <div class="data-stat-icon stat-records">
+            <UIcon name="i-lucide-file-text" />
+          </div>
+          <div class="data-stat-content">
+            <div class="data-stat-label">総レコード数</div>
+            <div class="data-stat-value">{{ dataStats.recordCount.toLocaleString() }}</div>
+          </div>
         </div>
-        <div>
-          <div class="data-info-label">プレイヤー数</div>
-          <div class="data-info-value">{{ dataStats.playerCount.toLocaleString() }}</div>
+        <div class="data-stat-item">
+          <div class="data-stat-icon stat-players">
+            <UIcon name="i-lucide-users" />
+          </div>
+          <div class="data-stat-content">
+            <div class="data-stat-label">プレイヤー数</div>
+            <div class="data-stat-value">{{ dataStats.playerCount.toLocaleString() }}</div>
+          </div>
         </div>
-        <div>
-          <div class="data-info-label">レッスン数</div>
-          <div class="data-info-value">{{ dataStats.lessonCount.toLocaleString() }}</div>
+        <div class="data-stat-item">
+          <div class="data-stat-icon stat-lessons">
+            <UIcon name="i-lucide-book-open" />
+          </div>
+          <div class="data-stat-content">
+            <div class="data-stat-label">レッスン数</div>
+            <div class="data-stat-value">{{ dataStats.lessonCount.toLocaleString() }}</div>
+          </div>
         </div>
-        <div>
-          <div class="data-info-label">期間</div>
-          <div class="data-info-value-sm">{{ dataStats.dateRange }}</div>
+        <div class="data-stat-item">
+          <div class="data-stat-icon stat-period">
+            <UIcon name="i-lucide-calendar" />
+          </div>
+          <div class="data-stat-content">
+            <div class="data-stat-label">期間</div>
+            <div class="data-stat-value-sm">{{ dataStats.dateRange }}</div>
+          </div>
         </div>
       </div>
 
@@ -34,7 +58,11 @@
           ref="csvFileInput"
           @change="handleCSVFileChange"
         >
-        <div class="flex gap-3 justify-center flex-wrap">
+        <div class="upload-icon">
+          <UIcon name="i-lucide-upload-cloud" />
+        </div>
+        <div class="upload-text">ファイルをドラッグ＆ドロップ、またはボタンで選択</div>
+        <div class="upload-buttons">
           <UButton
             color="primary"
             icon="i-lucide-file-up"
@@ -43,7 +71,8 @@
             CSVファイルを選択
           </UButton>
           <UButton
-            color="success"
+            color="neutral"
+            variant="outline"
             icon="i-lucide-database"
             @click="loadDemoDataManually"
           >
@@ -59,10 +88,13 @@
       </div>
 
       <!-- Sample Data Preview -->
-      <div class="mt-6">
-        <h3 class="font-semibold mb-3">データプレビュー（最新10件）</h3>
+      <div class="preview-section">
+        <div class="preview-header">
+          <UIcon name="i-lucide-eye" class="preview-icon" />
+          <span>データプレビュー（最新10件）</span>
+        </div>
         <div class="overflow-x-auto">
-          <table class="data-table text-xs">
+          <table class="data-table">
             <thead>
               <tr>
                 <th>日付</th>
@@ -74,7 +106,7 @@
             </thead>
             <tbody>
               <tr v-if="previewData.length === 0">
-                <td colspan="5" class="text-center text-gray-600">データがありません</td>
+                <td colspan="5" class="empty-cell">データがありません</td>
               </tr>
               <tr v-for="(session, index) in previewData" :key="index">
                 <td>{{ formatDate(session.date) }}</td>
@@ -167,55 +199,217 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.data-info-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 16px;
+/* ========================================
+   インポートカード - Nuxt UI Dashboard Style
+   ======================================== */
+.import-card {
+  background: var(--ui-bg);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius);
+  box-shadow: var(--ui-shadow-sm);
 }
 
-.data-info-label {
-  font-size: 12px;
-  color: #6b7280;
+.import-header {
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--ui-border);
+}
+
+.import-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ui-text-highlighted);
   margin-bottom: 4px;
 }
 
-.data-info-value {
-  font-size: 24px;
-  font-weight: 600;
-  color: #1f2937;
+.import-title-icon {
+  font-size: 18px;
+  color: #10b981;
 }
 
-.data-info-value-sm {
+.import-subtitle {
+  font-size: 12px;
+  color: var(--ui-text-muted);
+  margin-left: 28px;
+}
+
+/* ========================================
+   データ統計グリッド
+   ======================================== */
+.data-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.data-stat-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: var(--ui-bg-elevated);
+  border-radius: var(--ui-radius);
+  border: 1px solid var(--ui-border);
+  transition: all 0.15s ease;
+}
+
+.data-stat-item:hover {
+  border-color: var(--ui-border-accented);
+}
+
+.data-stat-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--ui-radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 18px;
+}
+
+.stat-records { background: rgba(99, 102, 241, 0.1); color: #6366f1; }
+.stat-players { background: rgba(139, 92, 246, 0.1); color: #8b5cf6; }
+.stat-lessons { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+.stat-period { background: rgba(14, 165, 233, 0.1); color: #0ea5e9; }
+
+.data-stat-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.data-stat-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ui-text-muted);
+  margin-bottom: 2px;
+}
+
+.data-stat-value {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--ui-text-highlighted);
+  line-height: 1.2;
+}
+
+.data-stat-value-sm {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ui-text-highlighted);
+}
+
+/* ========================================
+   アップロードエリア
+   ======================================== */
+.upload-area {
+  background: var(--ui-bg-elevated);
+  border: 2px dashed var(--ui-border);
+  border-radius: var(--ui-radius);
+  padding: 32px 24px;
+  text-align: center;
+  transition: all 0.2s ease;
+  margin-bottom: 24px;
+}
+
+.upload-area:hover {
+  border-color: var(--ui-primary);
+  background: rgba(var(--color-primary-500), 0.02);
+}
+
+.upload-icon {
+  font-size: 48px;
+  color: var(--ui-text-dimmed);
+  margin-bottom: 16px;
+}
+
+.upload-text {
   font-size: 14px;
   font-weight: 500;
-  color: #1f2937;
+  color: var(--ui-text-muted);
+  margin-bottom: 20px;
 }
 
-.upload-area {
-  background: #f9fafb;
-  border: 2px dashed #d1d5db;
-  border-radius: 8px;
-  padding: 24px;
-  text-align: center;
+.upload-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
 .upload-hint {
-  margin-top: 12px;
+  margin-top: 16px;
   font-size: 12px;
-  color: #6b7280;
+  color: var(--ui-text-dimmed);
 }
 
 .upload-status {
-  margin-top: 12px;
-  font-size: 14px;
-  color: #059669;
+  margin-top: 16px;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: var(--ui-radius);
+  display: inline-block;
 }
 
 .upload-status.error {
   color: #dc2626;
+  background: rgba(220, 38, 38, 0.1);
 }
 
 .upload-status.success {
   color: #059669;
+  background: rgba(5, 150, 105, 0.1);
+}
+
+/* ========================================
+   プレビューセクション
+   ======================================== */
+.preview-section {
+  margin-top: 0;
+}
+
+.preview-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ui-text-highlighted);
+  margin-bottom: 12px;
+}
+
+.preview-icon {
+  font-size: 16px;
+  color: var(--ui-text-muted);
+}
+
+.empty-cell {
+  text-align: center;
+  color: var(--ui-text-muted);
+  padding: 24px !important;
+}
+
+/* ========================================
+   レスポンシブ
+   ======================================== */
+@media (max-width: 1024px) {
+  .data-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .data-stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .upload-buttons {
+    flex-direction: column;
+    align-items: center;
+  }
 }
 </style>

@@ -581,40 +581,40 @@ defineExpose({
   padding: 0;
 }
 
-/* フィルターヘッダー */
+/* フィルターヘッダー - Nuxt UI Dashboard Style */
 .filter-header {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 16px;
-  margin-bottom: 16px;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  background: var(--ui-bg-elevated);
+  border-radius: var(--ui-radius);
   cursor: pointer;
-  transition: all 0.2s;
-  border: 1px solid #e2e8f0;
+  transition: all 0.15s ease;
+  border: 1px solid var(--ui-border);
 }
 
 .filter-header:hover {
-  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+  border-color: var(--ui-border-accented);
 }
 
 .filter-header-icon {
-  font-size: 18px;
-  color: #0ea5e9;
+  font-size: 16px;
+  color: var(--ui-primary);
 }
 
 .filter-title {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--ui-text-highlighted);
   margin: 0;
   flex: 1;
 }
 
 .filter-toggle-icon {
-  font-size: 16px;
-  color: #64748b;
+  font-size: 14px;
+  color: var(--ui-text-dimmed);
 }
 
 /* 折りたたみ時のスタイル */
@@ -627,123 +627,120 @@ defineExpose({
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  padding: 16px 8px;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border-radius: 10px;
+  gap: 10px;
+  padding: 14px 8px;
+  background: var(--ui-bg-elevated);
+  border-radius: var(--ui-radius);
   cursor: pointer;
-  transition: all 0.2s;
-  border: 1px solid #e2e8f0;
+  transition: all 0.15s ease;
+  border: 1px solid var(--ui-border);
 }
 
 .filter-collapsed-header:hover {
-  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
-  border-color: #0ea5e9;
+  border-color: var(--ui-primary);
 }
 
 .filter-collapsed-icon {
-  font-size: 22px;
-  color: #0ea5e9;
+  font-size: 20px;
+  color: var(--ui-primary);
 }
 
 .filter-collapsed-arrow {
-  font-size: 16px;
-  color: #64748b;
+  font-size: 14px;
+  color: var(--ui-text-dimmed);
 }
 
 .filter-body {
-  animation: fadeIn 0.2s ease;
+  animation: fadeIn 0.15s ease;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-8px); }
+  from { opacity: 0; transform: translateY(-4px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 /* フィルターセクション */
 .filter-section {
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  margin-bottom: 12px;
+  background: var(--ui-bg);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius);
+  margin-bottom: 10px;
   overflow: hidden;
-  transition: box-shadow 0.2s;
+  transition: all 0.15s ease;
 }
 
 .filter-section:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border-color: var(--ui-border-accented);
 }
 
 .filter-section-primary {
-  border-color: #0ea5e9;
-  border-width: 1px;
-  border-left-width: 4px;
+  border-color: var(--ui-primary);
 }
 
 .filter-section-header {
   display: flex;
   align-items: center;
-  padding: 14px 16px;
-  background: #f8fafc;
+  padding: 12px 14px;
+  background: var(--ui-bg-elevated);
   cursor: pointer;
-  transition: background 0.2s;
-  gap: 10px;
+  transition: background 0.15s ease;
+  gap: 8px;
 }
 
 .filter-section-header:hover {
-  background: #f1f5f9;
+  background: var(--ui-bg-accented);
 }
 
 .filter-section-header-static {
   display: flex;
   align-items: center;
-  padding: 14px 16px;
-  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-  gap: 10px;
+  padding: 12px 14px;
+  background: rgba(var(--color-primary-500), 0.05);
+  gap: 8px;
 }
 
 .filter-section-icon {
-  font-size: 14px;
-  color: #64748b;
-  width: 16px;
+  font-size: 12px;
+  color: var(--ui-text-dimmed);
+  width: 14px;
   flex-shrink: 0;
 }
 
 .filter-section-icon-static {
-  font-size: 16px;
-  color: #0ea5e9;
+  font-size: 14px;
+  color: var(--ui-primary);
 }
 
 .filter-section-title {
   flex: 1;
   font-weight: 600;
-  font-size: 13px;
-  color: #334155;
+  font-size: 12px;
+  color: var(--ui-text);
 }
 
 .filter-count {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   color: white;
-  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
-  padding: 3px 10px;
-  border-radius: 12px;
+  background: var(--ui-primary);
+  padding: 2px 8px;
+  border-radius: 10px;
 }
 
 .filter-section-content {
-  padding: 16px;
-  border-top: 1px solid #e2e8f0;
-  max-height: 400px;
+  padding: 14px;
+  border-top: 1px solid var(--ui-border);
+  max-height: 350px;
   overflow-y: auto;
 }
 
 .filter-section-primary .filter-section-content {
-  border-top-color: #bae6fd;
+  border-top-color: rgba(var(--color-primary-500), 0.2);
 }
 
 /* フィルターグループ */
 .filter-group {
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .filter-group:last-child {
@@ -753,180 +750,178 @@ defineExpose({
 .filter-group-header {
   display: flex;
   align-items: center;
-  padding: 10px 12px;
-  background: #f8fafc;
-  border-radius: 8px;
-  gap: 10px;
+  padding: 8px 10px;
+  background: var(--ui-bg-elevated);
+  border-radius: var(--ui-radius);
+  gap: 8px;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background 0.15s ease;
 }
 
 .filter-group-header:hover {
-  background: #f1f5f9;
+  background: var(--ui-bg-accented);
 }
 
 .filter-group-name {
   flex: 1;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
-  color: #334155;
+  color: var(--ui-text);
 }
 
 .filter-expand-icon {
-  font-size: 12px;
-  color: #94a3b8;
+  font-size: 10px;
+  color: var(--ui-text-dimmed);
   flex-shrink: 0;
 }
 
 /* サブグループ */
 .filter-subgroup {
-  padding-left: 20px;
-  padding-top: 8px;
+  padding-left: 16px;
+  padding-top: 6px;
 }
 
 .filter-level-item {
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .filter-level-header {
   display: flex;
   align-items: center;
-  padding: 8px 12px;
-  background: #f1f5f9;
-  border-radius: 6px;
-  gap: 10px;
+  padding: 6px 10px;
+  background: var(--ui-bg-muted);
+  border-radius: var(--ui-radius);
+  gap: 8px;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background 0.15s ease;
 }
 
 .filter-level-header:hover {
-  background: #e2e8f0;
+  background: var(--ui-bg-accented);
 }
 
 .filter-level-name {
   flex: 1;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
-  color: #475569;
+  color: var(--ui-text-muted);
 }
 
 /* レッスン一覧 */
 .filter-lessons {
-  padding-left: 20px;
-  padding-top: 8px;
+  padding-left: 16px;
+  padding-top: 6px;
 }
 
 .filter-lesson-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 6px 10px;
-  margin-bottom: 4px;
-  border-radius: 4px;
-  transition: background 0.15s;
+  gap: 8px;
+  padding: 5px 8px;
+  margin-bottom: 2px;
+  border-radius: var(--ui-radius);
+  transition: background 0.15s ease;
 }
 
 .filter-lesson-item:hover {
-  background: #f8fafc;
+  background: var(--ui-bg-elevated);
 }
 
 .filter-lesson-name {
-  font-size: 12px;
-  color: #475569;
+  font-size: 11px;
+  color: var(--ui-text-muted);
 }
 
 /* プレイヤー一覧 */
 .filter-player-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 6px 10px;
-  margin-bottom: 4px;
-  border-radius: 4px;
-  transition: background 0.15s;
+  gap: 8px;
+  padding: 5px 8px;
+  margin-bottom: 2px;
+  border-radius: var(--ui-radius);
+  transition: background 0.15s ease;
 }
 
 .filter-player-item:hover {
-  background: #f8fafc;
+  background: var(--ui-bg-elevated);
 }
 
 .filter-player-name {
-  font-size: 12px;
-  color: #475569;
+  font-size: 11px;
+  color: var(--ui-text-muted);
 }
 
 /* レベルフィルター（縦1列） */
 .level-filter-options-vertical {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .level-filter-item-vertical {
   display: flex;
   align-items: center;
-  padding: 10px 14px;
-  background: #f8fafc;
-  border-radius: 8px;
-  gap: 10px;
+  padding: 8px 12px;
+  background: var(--ui-bg-elevated);
+  border-radius: var(--ui-radius);
+  gap: 8px;
   cursor: pointer;
-  transition: all 0.2s;
-  border: 1px solid #e2e8f0;
+  transition: all 0.15s ease;
+  border: 1px solid var(--ui-border);
 }
 
 .level-filter-item-vertical:hover {
-  border-color: #0ea5e9;
-  background: #f0f9ff;
+  border-color: var(--ui-primary);
 }
 
 .level-filter-name {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
-  color: #334155;
+  color: var(--ui-text);
 }
 
 /* 期間フィルター */
 .period-filter {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .period-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .period-label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
-  color: #64748b;
-  width: 50px;
+  color: var(--ui-text-muted);
+  width: 45px;
   flex-shrink: 0;
 }
 
 /* リセットボタン */
 .reset-button {
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
 /* スクロールバー */
 .filter-section-content::-webkit-scrollbar {
-  width: 6px;
+  width: 4px;
 }
 
 .filter-section-content::-webkit-scrollbar-track {
-  background: #f8fafc;
-  border-radius: 3px;
+  background: transparent;
 }
 
 .filter-section-content::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
+  background: var(--ui-border);
+  border-radius: 2px;
 }
 
 .filter-section-content::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: var(--ui-border-accented);
 }
 </style>

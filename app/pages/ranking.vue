@@ -340,37 +340,40 @@ onMounted(async () => {
 
 <style scoped>
 /* ========================================
-   ランキングカード
+   ランキングカード - Nuxt UI Dashboard Style
    ======================================== */
 .ranking-card {
-  border-left: 4px solid #f59e0b;
+  background: var(--ui-bg);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius);
+  box-shadow: var(--ui-shadow-sm);
 }
 
 .ranking-card-header {
   margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--ui-border);
 }
 
 .ranking-title {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--ui-text-highlighted);
   margin-bottom: 4px;
 }
 
 .ranking-title-icon {
-  font-size: 20px;
+  font-size: 18px;
   color: #f59e0b;
 }
 
 .ranking-subtitle {
-  font-size: 13px;
-  color: #64748b;
-  margin-left: 30px;
+  font-size: 12px;
+  color: var(--ui-text-muted);
+  margin-left: 28px;
 }
 
 .ranking-toolbar {
@@ -379,27 +382,28 @@ onMounted(async () => {
   align-items: center;
   margin-bottom: 16px;
   padding: 12px 16px;
-  background: #f8fafc;
-  border-radius: 8px;
+  background: var(--ui-bg-elevated);
+  border-radius: var(--ui-radius);
+  border: 1px solid var(--ui-border);
 }
 
 .ranking-info {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .info-badge {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
-  color: #475569;
-  background: white;
+  color: var(--ui-text);
+  background: var(--ui-bg);
   padding: 6px 12px;
-  border-radius: 20px;
-  border: 1px solid #e2e8f0;
+  border-radius: var(--ui-radius);
+  border: 1px solid var(--ui-border);
 }
 
 .info-icon {
@@ -410,7 +414,7 @@ onMounted(async () => {
 .table-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 /* 列設定ポップアップ */
@@ -425,15 +429,15 @@ onMounted(async () => {
   gap: 8px;
   font-size: 12px;
   font-weight: 600;
-  color: #64748b;
+  color: var(--ui-text-muted);
   padding: 8px 12px;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--ui-border);
   margin-bottom: 4px;
 }
 
 .column-icon {
   font-size: 14px;
-  color: #94a3b8;
+  color: var(--ui-text-dimmed);
 }
 
 .column-option {
@@ -442,22 +446,23 @@ onMounted(async () => {
   gap: 10px;
   padding: 8px 12px;
   font-size: 13px;
-  color: #475569;
+  font-weight: 500;
+  color: var(--ui-text);
   cursor: pointer;
-  border-radius: 6px;
-  transition: background 0.15s ease;
+  border-radius: var(--ui-radius);
+  transition: all 0.15s ease;
 }
 
 .column-option:hover {
-  background: #f1f5f9;
+  background: var(--ui-bg-elevated);
 }
 
 /* ========================================
    ランキングテーブル
    ======================================== */
 .rank-cell {
-  font-weight: 700;
-  font-size: 14px;
+  font-weight: 600;
+  font-size: 13px;
 }
 
 /* 1位 - ゴールド */
@@ -466,11 +471,11 @@ onMounted(async () => {
 }
 
 .row-gold {
-  background: linear-gradient(90deg, #fef3c7 0%, #fde68a 50%, #fef3c7 100%) !important;
+  background: rgba(251, 191, 36, 0.15) !important;
 }
 
 .row-gold:hover {
-  background: linear-gradient(90deg, #fde68a 0%, #fcd34d 50%, #fde68a 100%) !important;
+  background: rgba(251, 191, 36, 0.25) !important;
 }
 
 /* 2位 - シルバー */
@@ -479,24 +484,24 @@ onMounted(async () => {
 }
 
 .row-silver {
-  background: linear-gradient(90deg, #f1f5f9 0%, #e2e8f0 50%, #f1f5f9 100%) !important;
+  background: rgba(148, 163, 184, 0.15) !important;
 }
 
 .row-silver:hover {
-  background: linear-gradient(90deg, #e2e8f0 0%, #cbd5e1 50%, #e2e8f0 100%) !important;
+  background: rgba(148, 163, 184, 0.25) !important;
 }
 
 /* 3位 - ブロンズ */
 .rank-bronze {
-  color: #78350f;
+  color: #92400e;
 }
 
 .row-bronze {
-  background: linear-gradient(90deg, #fed7aa 0%, #fdba74 50%, #fed7aa 100%) !important;
+  background: rgba(251, 146, 60, 0.15) !important;
 }
 
 .row-bronze:hover {
-  background: linear-gradient(90deg, #fdba74 0%, #fb923c 50%, #fdba74 100%) !important;
+  background: rgba(251, 146, 60, 0.25) !important;
 }
 
 /* ========================================
@@ -509,7 +514,7 @@ onMounted(async () => {
 }
 
 .sortable:hover {
-  background-color: #e0f2fe;
+  background: var(--ui-bg-elevated);
 }
 
 .th-content {
@@ -520,13 +525,13 @@ onMounted(async () => {
 
 .sort-icon {
   font-size: 10px;
-  color: #cbd5e1;
+  color: var(--ui-text-dimmed);
   margin-left: 4px;
   transition: color 0.15s ease;
 }
 
 .sort-icon.active {
-  color: #0ea5e9;
+  color: var(--ui-primary);
 }
 
 /* ========================================
