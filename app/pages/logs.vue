@@ -14,39 +14,60 @@
 
       <!-- Right Content -->
       <div class="summary-content">
-        <div class="card">
-          <div class="table-header">
-            <h2 class="text-lg font-semibold text-gray-800">ログ</h2>
+        <UCard class="log-card">
+          <div class="log-card-header">
+            <div class="log-title">
+              <UIcon name="i-lucide-file-text" class="log-title-icon" />
+              ログ
+            </div>
+            <div class="log-subtitle">プレイセッションの詳細記録</div>
+          </div>
+          <div class="log-toolbar">
+            <div class="log-info">
+              <span class="info-badge">
+                <UIcon name="i-lucide-list" class="info-icon" />
+                {{ sortedData.length }}件
+              </span>
+              <span class="page-info">
+                <UIcon name="i-lucide-book-open" class="info-icon" />
+                ページ {{ currentPage }} / {{ totalPages }}
+              </span>
+            </div>
             <div class="table-actions">
-              <button class="download-button" @click="downloadCSV">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                  <polyline points="7 10 12 15 17 10"></polyline>
-                  <line x1="12" y1="15" x2="12" y2="3"></line>
-                </svg>
+              <UButton
+                variant="outline"
+                color="primary"
+                size="sm"
+                icon="i-lucide-download"
+                @click="downloadCSV"
+              >
                 ダウンロード
-              </button>
-              <div class="column-settings-container">
-                <button class="column-settings-button" @click="toggleColumnSettings">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="3"></circle>
-                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-                  </svg>
+              </UButton>
+              <UPopover>
+                <UButton
+                  variant="outline"
+                  color="neutral"
+                  size="sm"
+                  icon="i-lucide-settings"
+                >
                   列設定
-                </button>
-                <div v-if="showColumnSettings" class="column-settings-dropdown">
-                  <div class="column-settings-title">表示する列</div>
-                  <label v-for="col in columnDefinitions" :key="col.key" class="column-settings-item">
-                    <input
-                      type="checkbox"
-                      :checked="visibleColumns[col.key]"
-                      @change="toggleColumn(col.key)"
-                      class="column-settings-checkbox"
-                    />
-                    <span>{{ col.label }}</span>
-                  </label>
-                </div>
-              </div>
+                </UButton>
+                <template #content>
+                  <div class="column-settings-popup">
+                    <div class="column-settings-header">
+                      <UIcon name="i-lucide-columns" class="column-icon" />
+                      表示する列
+                    </div>
+                    <label v-for="col in columnDefinitions" :key="col.key" class="column-option">
+                      <UCheckbox
+                        :model-value="visibleColumns[col.key]"
+                        @update:model-value="toggleColumn(col.key)"
+                      />
+                      <span>{{ col.label }}</span>
+                    </label>
+                  </div>
+                </template>
+              </UPopover>
             </div>
           </div>
           <div class="overflow-x-auto">
@@ -108,24 +129,30 @@
               </tbody>
             </table>
           </div>
-          <div class="flex justify-center items-center gap-2 mt-4">
-            <button
-              class="pagination-button"
+          <div class="pagination">
+            <UButton
+              variant="outline"
+              color="neutral"
+              size="sm"
+              icon="i-lucide-chevron-left"
               :disabled="currentPage <= 1"
               @click="changePage(-1)"
-            >
-              &lt;
-            </button>
-            <span class="text-sm text-gray-600">ページ {{ currentPage }} / {{ totalPages }}</span>
-            <button
-              class="pagination-button"
+            />
+            <div class="pagination-info">
+              <span class="pagination-current">{{ currentPage }}</span>
+              <span class="pagination-divider">/</span>
+              <span class="pagination-total">{{ totalPages }}</span>
+            </div>
+            <UButton
+              variant="outline"
+              color="neutral"
+              size="sm"
+              icon="i-lucide-chevron-right"
               :disabled="currentPage >= totalPages"
               @click="changePage(1)"
-            >
-              &gt;
-            </button>
+            />
           </div>
-        </div>
+        </UCard>
       </div>
     </div>
   </div>
@@ -197,9 +224,6 @@ const visibleColumns = reactive<Record<string, boolean>>({
   playTime: true
 })
 
-// 列設定ドロップダウンの表示状態
-const showColumnSettings = ref(false)
-
 // 表示列数を計算
 const visibleColumnCount = computed(() => {
   return Object.values(visibleColumns).filter(v => v).length
@@ -208,11 +232,6 @@ const visibleColumnCount = computed(() => {
 // 列の表示/非表示を切り替え
 const toggleColumn = (key: string) => {
   visibleColumns[key] = !visibleColumns[key]
-}
-
-// 列設定ドロップダウンの表示/非表示
-const toggleColumnSettings = () => {
-  showColumnSettings.value = !showColumnSettings.value
 }
 
 // テーブルソート
@@ -304,14 +323,6 @@ const downloadCSV = () => {
   URL.revokeObjectURL(url)
 }
 
-// クリックイベントでドロップダウンを閉じる
-const handleClickOutside = (event: MouseEvent) => {
-  const target = event.target as HTMLElement
-  if (!target.closest('.column-settings-container')) {
-    showColumnSettings.value = false
-  }
-}
-
 // 初期化
 onMounted(async () => {
   // データが読み込まれていない場合はデモデータを自動読み込み
@@ -323,132 +334,212 @@ onMounted(async () => {
     }
   }
   loadLogData()
-
-  // クリックイベントリスナー追加
-  document.addEventListener('click', handleClickOutside)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside)
 })
 </script>
 
 <style scoped>
-.table-header {
+/* ========================================
+   ログカード
+   ======================================== */
+.log-card {
+  border-left: 4px solid #6366f1;
+}
+
+.log-card-header {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.log-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+
+.log-title-icon {
+  font-size: 20px;
+  color: #6366f1;
+}
+
+.log-subtitle {
+  font-size: 13px;
+  color: #64748b;
+  margin-left: 30px;
+}
+
+.log-toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+.log-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.info-badge,
+.page-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+  background: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1px solid #e2e8f0;
+}
+
+.info-icon {
+  font-size: 14px;
+  color: #6366f1;
 }
 
 .table-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
-.download-button {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  background: white;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 13px;
-  color: #4b5563;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.download-button:hover {
-  background: #f9fafb;
-  border-color: #9ca3af;
-}
-
-.column-settings-container {
-  position: relative;
-}
-
-.column-settings-button {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  background: white;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 13px;
-  color: #4b5563;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.column-settings-button:hover {
-  background: #f9fafb;
-  border-color: #9ca3af;
-}
-
-.column-settings-dropdown {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  margin-top: 4px;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+/* 列設定ポップアップ */
+.column-settings-popup {
+  padding: 8px;
   min-width: 180px;
-  z-index: 50;
-  padding: 8px 0;
 }
 
-.column-settings-title {
-  padding: 8px 12px;
+.column-settings-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 12px;
   font-weight: 600;
-  color: #6b7280;
-  border-bottom: 1px solid #e5e7eb;
+  color: #64748b;
+  padding: 8px 12px;
+  border-bottom: 1px solid #e2e8f0;
   margin-bottom: 4px;
 }
 
-.column-settings-item {
+.column-icon {
+  font-size: 14px;
+  color: #94a3b8;
+}
+
+.column-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: #475569;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.15s ease;
+}
+
+.column-option:hover {
+  background: #f1f5f9;
+}
+
+/* ========================================
+   ページネーション
+   ======================================== */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.pagination-info {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
-  font-size: 13px;
-  color: #374151;
-  cursor: pointer;
-  transition: background 0.15s;
+  font-size: 14px;
+  color: #64748b;
 }
 
-.column-settings-item:hover {
-  background: #f3f4f6;
-}
-
-.column-settings-checkbox {
-  width: 16px;
-  height: 16px;
-  accent-color: #3b82f6;
-  cursor: pointer;
-}
-
-.pagination-button {
-  padding: 8px 16px;
-  background: white;
-  border: 1px solid #d1d5db;
+.pagination-current {
+  font-weight: 600;
+  color: #6366f1;
+  background: #eef2ff;
+  padding: 4px 10px;
   border-radius: 6px;
+}
+
+.pagination-divider {
+  color: #cbd5e1;
+}
+
+.pagination-total {
+  color: #475569;
+}
+
+/* ========================================
+   ソート機能
+   ======================================== */
+.sortable {
   cursor: pointer;
-  transition: all 0.2s;
+  user-select: none;
+  transition: background 0.15s ease;
 }
 
-.pagination-button:hover:not(:disabled) {
-  background: #f3f4f6;
+.sortable:hover {
+  background-color: #eef2ff;
 }
 
-.pagination-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.sortable.sorted {
+  background-color: #e0e7ff;
+}
+
+.th-content {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sort-icon {
+  font-size: 10px;
+  color: #cbd5e1;
+  margin-left: 4px;
+  transition: color 0.15s ease;
+}
+
+.sortable.sorted .sort-icon {
+  color: #6366f1;
+}
+
+/* ========================================
+   レスポンシブ
+   ======================================== */
+@media (max-width: 768px) {
+  .log-toolbar {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .log-info {
+    flex-wrap: wrap;
+  }
+
+  .table-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
 }
 </style>

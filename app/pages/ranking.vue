@@ -14,39 +14,56 @@
 
       <!-- Right Content -->
       <div class="summary-content">
-        <div class="card">
-          <div class="ranking-header">
-            <h2 class="text-lg font-semibold text-gray-800">個人レコード</h2>
-            <div class="table-actions">
-              <button class="download-button" @click="downloadCSV">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                  <polyline points="7 10 12 15 17 10"></polyline>
-                  <line x1="12" y1="15" x2="12" y2="3"></line>
-                </svg>
-                ダウンロード
-              </button>
-              <div class="column-settings-container">
-              <button class="column-settings-button" @click="toggleColumnSettings">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="3"></circle>
-                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-                </svg>
-                列設定
-              </button>
-              <div v-if="showColumnSettings" class="column-settings-dropdown">
-                <div class="column-settings-title">表示する列</div>
-                <label v-for="col in columnDefinitions" :key="col.key" class="column-settings-item">
-                  <input
-                    type="checkbox"
-                    :checked="visibleColumns[col.key]"
-                    @change="toggleColumn(col.key)"
-                    class="column-settings-checkbox"
-                  />
-                  <span>{{ col.label }}</span>
-                </label>
-              </div>
+        <UCard class="ranking-card">
+          <div class="ranking-card-header">
+            <div class="ranking-title">
+              <UIcon name="i-lucide-trophy" class="ranking-title-icon" />
+              個人レコード
             </div>
+            <div class="ranking-subtitle">プレイヤー別のパフォーマンス一覧</div>
+          </div>
+          <div class="ranking-toolbar">
+            <div class="ranking-info">
+              <span class="info-badge">
+                <UIcon name="i-lucide-users" class="info-icon" />
+                {{ sortedData.length }}名
+              </span>
+            </div>
+            <div class="table-actions">
+              <UButton
+                variant="outline"
+                color="primary"
+                size="sm"
+                icon="i-lucide-download"
+                @click="downloadCSV"
+              >
+                ダウンロード
+              </UButton>
+              <UPopover>
+                <UButton
+                  variant="outline"
+                  color="neutral"
+                  size="sm"
+                  icon="i-lucide-settings"
+                >
+                  列設定
+                </UButton>
+                <template #content>
+                  <div class="column-settings-popup">
+                    <div class="column-settings-header">
+                      <UIcon name="i-lucide-columns" class="column-icon" />
+                      表示する列
+                    </div>
+                    <label v-for="col in columnDefinitions" :key="col.key" class="column-option">
+                      <UCheckbox
+                        :model-value="visibleColumns[col.key]"
+                        @update:model-value="toggleColumn(col.key)"
+                      />
+                      <span>{{ col.label }}</span>
+                    </label>
+                  </div>
+                </template>
+              </UPopover>
             </div>
           </div>
           <div class="overflow-x-auto">
@@ -104,7 +121,7 @@
               </tbody>
             </table>
           </div>
-        </div>
+        </UCard>
       </div>
     </div>
   </div>
@@ -206,9 +223,6 @@ const visibleColumns = reactive<Record<string, boolean>>({
   totalSpeechTime: true
 })
 
-// 列設定ドロップダウンの表示状態
-const showColumnSettings = ref(false)
-
 // 表示列数を計算
 const visibleColumnCount = computed(() => {
   return Object.values(visibleColumns).filter(v => v).length
@@ -217,11 +231,6 @@ const visibleColumnCount = computed(() => {
 // 列の表示/非表示を切り替え
 const toggleColumn = (key: string) => {
   visibleColumns[key] = !visibleColumns[key]
-}
-
-// 列設定ドロップダウンの表示/非表示
-const toggleColumnSettings = () => {
-  showColumnSettings.value = !showColumnSettings.value
 }
 
 // フィルター更新ハンドラ
@@ -311,14 +320,6 @@ const downloadCSV = () => {
   URL.revokeObjectURL(url)
 }
 
-// クリックイベントでドロップダウンを閉じる
-const handleClickOutside = (event: MouseEvent) => {
-  const target = event.target as HTMLElement
-  if (!target.closest('.column-settings-container')) {
-    showColumnSettings.value = false
-  }
-}
-
 // 初期化
 onMounted(async () => {
   // データが読み込まれていない場合はデモデータを自動読み込み
@@ -334,154 +335,181 @@ onMounted(async () => {
   if (filterOptions.value.categories?.length > 0 && rankingData.value.length === 0) {
     updateRankingData()
   }
-
-  // クリックイベントリスナー追加
-  document.addEventListener('click', handleClickOutside)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside)
 })
 </script>
 
 <style scoped>
-.ranking-header {
+/* ========================================
+   ランキングカード
+   ======================================== */
+.ranking-card {
+  border-left: 4px solid #f59e0b;
+}
+
+.ranking-card-header {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.ranking-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+
+.ranking-title-icon {
+  font-size: 20px;
+  color: #f59e0b;
+}
+
+.ranking-subtitle {
+  font-size: 13px;
+  color: #64748b;
+  margin-left: 30px;
+}
+
+.ranking-toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+.ranking-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.info-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+  background: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1px solid #e2e8f0;
+}
+
+.info-icon {
+  font-size: 14px;
+  color: #f59e0b;
 }
 
 .table-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
-.download-button {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  background: white;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 13px;
-  color: #4b5563;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.download-button:hover {
-  background: #f9fafb;
-  border-color: #9ca3af;
-}
-
-.column-settings-container {
-  position: relative;
-}
-
-.column-settings-button {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  background: white;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 13px;
-  color: #4b5563;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.column-settings-button:hover {
-  background: #f9fafb;
-  border-color: #9ca3af;
-}
-
-.column-settings-dropdown {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  margin-top: 4px;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+/* 列設定ポップアップ */
+.column-settings-popup {
+  padding: 8px;
   min-width: 180px;
-  z-index: 50;
-  padding: 8px 0;
 }
 
-.column-settings-title {
-  padding: 8px 12px;
+.column-settings-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 12px;
   font-weight: 600;
-  color: #6b7280;
-  border-bottom: 1px solid #e5e7eb;
+  color: #64748b;
+  padding: 8px 12px;
+  border-bottom: 1px solid #e2e8f0;
   margin-bottom: 4px;
 }
 
-.column-settings-item {
+.column-icon {
+  font-size: 14px;
+  color: #94a3b8;
+}
+
+.column-option {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   padding: 8px 12px;
   font-size: 13px;
-  color: #374151;
+  color: #475569;
   cursor: pointer;
-  transition: background 0.15s;
+  border-radius: 6px;
+  transition: background 0.15s ease;
 }
 
-.column-settings-item:hover {
-  background: #f3f4f6;
+.column-option:hover {
+  background: #f1f5f9;
 }
 
-.column-settings-checkbox {
-  width: 16px;
-  height: 16px;
-  accent-color: #3b82f6;
-  cursor: pointer;
-}
-
+/* ========================================
+   ランキングテーブル
+   ======================================== */
 .rank-cell {
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 14px;
 }
 
+/* 1位 - ゴールド */
 .rank-gold {
-  color: #92400e; /* 濃いオレンジ/茶色 - オレンジ背景に対して見やすい */
+  color: #b45309;
 }
 
-.rank-silver {
-  color: #78350f; /* 濃い茶色 - 黄色背景に対して見やすい */
-}
-
-.rank-bronze {
-  color: #374151; /* 濃いグレー - グレー背景に対して見やすい */
-}
-
-/* 1〜3位の行の背景色 */
 .row-gold {
-  background-color: #fed7aa !important;
+  background: linear-gradient(90deg, #fef3c7 0%, #fde68a 50%, #fef3c7 100%) !important;
+}
+
+.row-gold:hover {
+  background: linear-gradient(90deg, #fde68a 0%, #fcd34d 50%, #fde68a 100%) !important;
+}
+
+/* 2位 - シルバー */
+.rank-silver {
+  color: #64748b;
 }
 
 .row-silver {
-  background-color: #fef3c7 !important;
+  background: linear-gradient(90deg, #f1f5f9 0%, #e2e8f0 50%, #f1f5f9 100%) !important;
+}
+
+.row-silver:hover {
+  background: linear-gradient(90deg, #e2e8f0 0%, #cbd5e1 50%, #e2e8f0 100%) !important;
+}
+
+/* 3位 - ブロンズ */
+.rank-bronze {
+  color: #78350f;
 }
 
 .row-bronze {
-  background-color: #f3f4f6 !important;
+  background: linear-gradient(90deg, #fed7aa 0%, #fdba74 50%, #fed7aa 100%) !important;
 }
 
-/* ソート可能なヘッダー */
+.row-bronze:hover {
+  background: linear-gradient(90deg, #fdba74 0%, #fb923c 50%, #fdba74 100%) !important;
+}
+
+/* ========================================
+   ソート機能
+   ======================================== */
 .sortable {
   cursor: pointer;
   user-select: none;
+  transition: background 0.15s ease;
 }
 
 .sortable:hover {
-  background-color: #f3f4f6;
+  background-color: #e0f2fe;
 }
 
 .th-content {
@@ -492,11 +520,28 @@ onUnmounted(() => {
 
 .sort-icon {
   font-size: 10px;
-  color: #d1d5db;
+  color: #cbd5e1;
   margin-left: 4px;
+  transition: color 0.15s ease;
 }
 
 .sort-icon.active {
-  color: #3b82f6;
+  color: #0ea5e9;
+}
+
+/* ========================================
+   レスポンシブ
+   ======================================== */
+@media (max-width: 768px) {
+  .ranking-toolbar {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .table-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
 }
 </style>

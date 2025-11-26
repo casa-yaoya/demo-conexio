@@ -15,80 +15,135 @@
     <div class="summary-content">
       <div class="p-5">
         <!-- 集計データ -->
-        <div class="card mb-4">
+        <UCard class="stats-card mb-4">
           <div class="stats-header-row">
-            <div class="stats-header">集計データ</div>
-            <div class="stats-period">{{ selectedPeriodText }}</div>
+            <div class="stats-header">
+              <UIcon name="i-lucide-bar-chart-3" class="stats-header-icon" />
+              集計データ
+            </div>
+            <div class="stats-period">
+              <UIcon name="i-lucide-calendar" class="period-icon" />
+              {{ selectedPeriodText }}
+            </div>
           </div>
           <div class="stats-grid">
-            <div>
-              <div class="stats-label">総プレイ時間</div>
-              <div class="stats-value">{{ formatTimeLong(aggregatedStats.totalPlayTime) }}</div>
+            <div class="stat-item stat-time">
+              <div class="stat-icon-wrapper">
+                <UIcon name="i-lucide-clock" class="stat-icon" />
+              </div>
+              <div class="stat-content">
+                <div class="stats-label">総プレイ時間</div>
+                <div class="stats-value">{{ formatTimeLong(aggregatedStats.totalPlayTime) }}</div>
+              </div>
             </div>
-            <div>
-              <div class="stats-label">総プレイ数</div>
-              <div class="stats-value">{{ aggregatedStats.playCount.toLocaleString() }}</div>
+            <div class="stat-item stat-play">
+              <div class="stat-icon-wrapper">
+                <UIcon name="i-lucide-play-circle" class="stat-icon" />
+              </div>
+              <div class="stat-content">
+                <div class="stats-label">総プレイ数</div>
+                <div class="stats-value">{{ aggregatedStats.playCount.toLocaleString() }}</div>
+              </div>
             </div>
-            <div>
-              <div class="stats-label">総プレイヤー数</div>
-              <div class="stats-value">{{ aggregatedStats.playerCount.toLocaleString() }}</div>
+            <div class="stat-item stat-players">
+              <div class="stat-icon-wrapper">
+                <UIcon name="i-lucide-users" class="stat-icon" />
+              </div>
+              <div class="stat-content">
+                <div class="stats-label">総プレイヤー数</div>
+                <div class="stats-value">{{ aggregatedStats.playerCount.toLocaleString() }}</div>
+              </div>
             </div>
-            <div>
-              <div class="stats-label">総レッスン数</div>
-              <div class="stats-value">{{ aggregatedStats.lessonCount.toLocaleString() }}</div>
+            <div class="stat-item stat-lessons">
+              <div class="stat-icon-wrapper">
+                <UIcon name="i-lucide-book-open" class="stat-icon" />
+              </div>
+              <div class="stat-content">
+                <div class="stats-label">総レッスン数</div>
+                <div class="stats-value">{{ aggregatedStats.lessonCount.toLocaleString() }}</div>
+              </div>
             </div>
           </div>
-        </div>
+        </UCard>
 
         <!-- Chart -->
-        <div class="card mb-4">
+        <UCard class="chart-card mb-4">
+          <div class="chart-header">
+            <UIcon name="i-lucide-trending-up" class="chart-header-icon" />
+            トレンドチャート
+          </div>
           <TrendChart
             :labels="trendChartLabels"
             :datasets="trendChartDatasets"
           />
-        </div>
+        </UCard>
 
         <!-- Table -->
-        <div class="card">
-          <div class="summary-header">
-            <div class="flex items-center gap-3">
-              <label class="font-semibold text-sm text-gray-800">表示単位:</label>
-              <select v-model="summaryDisplayUnit" class="select-input">
-                <option value="lesson">レッスン</option>
-                <option value="level">レベル</option>
-                <option value="category">カテゴリー</option>
-              </select>
+        <UCard class="table-card">
+          <div class="table-card-header">
+            <div class="table-title">
+              <UIcon name="i-lucide-table" class="table-title-icon" />
+              サマリーテーブル
             </div>
-            <div class="table-actions">
-              <button class="download-button" @click="downloadCSV">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                  <polyline points="7 10 12 15 17 10"></polyline>
-                  <line x1="12" y1="15" x2="12" y2="3"></line>
-                </svg>
-                ダウンロード
-              </button>
-              <div class="column-settings-container">
-              <button class="column-settings-button" @click="toggleColumnSettings">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="3"></circle>
-                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-                </svg>
-                列設定
-              </button>
-              <div v-if="showColumnSettings" class="column-settings-dropdown">
-                <div class="column-settings-title">表示する列</div>
-                <label v-for="col in columnDefinitions" :key="col.key" class="column-settings-item">
-                  <input
-                    type="checkbox"
-                    :checked="visibleColumns[col.key]"
-                    @change="toggleColumn(col.key)"
-                    class="column-settings-checkbox"
-                  />
-                  <span>{{ col.label }}</span>
-                </label>
+          </div>
+          <div class="summary-header">
+            <div class="display-settings-row">
+              <div class="display-setting-item">
+                <UIcon name="i-lucide-layers" class="setting-icon" />
+                <label class="display-setting-label">表示単位:</label>
+                <USelect
+                  v-model="summaryDisplayUnit"
+                  :items="displayUnitOptions"
+                  size="sm"
+                  class="min-w-[120px]"
+                />
+              </div>
+              <div class="display-setting-item">
+                <UIcon name="i-lucide-git-compare" class="setting-icon" />
+                <label class="display-setting-label">グラフ比較軸:</label>
+                <USelect
+                  v-model="chartCompareAxis"
+                  :items="chartCompareAxisOptions"
+                  size="sm"
+                  class="min-w-[120px]"
+                />
               </div>
             </div>
+            <div class="table-actions">
+              <UButton
+                variant="outline"
+                color="primary"
+                size="sm"
+                icon="i-lucide-download"
+                @click="downloadCSV"
+              >
+                ダウンロード
+              </UButton>
+              <UPopover>
+                <UButton
+                  variant="outline"
+                  color="neutral"
+                  size="sm"
+                  icon="i-lucide-settings"
+                >
+                  列設定
+                </UButton>
+                <template #content>
+                  <div class="column-settings-popup">
+                    <div class="column-settings-header">
+                      <UIcon name="i-lucide-columns" class="column-icon" />
+                      表示する列
+                    </div>
+                    <label v-for="col in columnDefinitions" :key="col.key" class="column-option">
+                      <UCheckbox
+                        :model-value="visibleColumns[col.key]"
+                        @update:model-value="toggleColumn(col.key)"
+                      />
+                      <span>{{ col.label }}</span>
+                    </label>
+                  </div>
+                </template>
+              </UPopover>
             </div>
           </div>
           <div class="overflow-x-auto">
@@ -124,7 +179,7 @@
               </tbody>
             </table>
           </div>
-        </div>
+        </UCard>
       </div>
     </div>
   </div>
@@ -139,7 +194,8 @@ definePageMeta({
 const {
   isDataLoaded,
   loadDemoData,
-  getMonthlyTrendData,
+  getFilteredMonthlyTrendData,
+  getComparisonTrendData,
   getFilterOptions,
   getFilteredSummaryData,
   getFilteredAggregatedStats
@@ -159,6 +215,26 @@ const currentFilters = ref<{
 
 const summaryDisplayUnit = ref<'lesson' | 'level' | 'category'>('lesson')
 const summaryData = ref<any[]>([])
+
+// USelect用オプション
+const displayUnitOptions = [
+  { label: 'レッスン', value: 'lesson' },
+  { label: 'レベル', value: 'level' },
+  { label: 'カテゴリー', value: 'category' }
+]
+
+const chartCompareAxisOptions = [
+  { label: 'なし', value: 'none' },
+  { label: 'アカウント', value: 'account' },
+  { label: 'グループ', value: 'group' },
+  { label: 'プレイヤー', value: 'player' },
+  { label: 'コース', value: 'category' },
+  { label: 'レベル', value: 'level' },
+  { label: 'レッスン', value: 'lesson' }
+]
+
+// グラフの比較軸
+const chartCompareAxis = ref<'none' | 'account' | 'group' | 'player' | 'category' | 'level' | 'lesson'>('none')
 
 // フィルター折りたたみ状態
 const isFilterCollapsed = ref(false)
@@ -193,9 +269,6 @@ const visibleColumns = reactive<Record<string, boolean>>({
   bestScorer: true
 })
 
-// 列設定ドロップダウンの表示状態
-const showColumnSettings = ref(false)
-
 // 表示列数を計算
 const visibleColumnCount = computed(() => {
   return Object.values(visibleColumns).filter(v => v).length
@@ -204,19 +277,6 @@ const visibleColumnCount = computed(() => {
 // 列の表示/非表示を切り替え
 const toggleColumn = (key: string) => {
   visibleColumns[key] = !visibleColumns[key]
-}
-
-// 列設定ドロップダウンの表示/非表示
-const toggleColumnSettings = () => {
-  showColumnSettings.value = !showColumnSettings.value
-}
-
-// クリックイベントでドロップダウンを閉じる
-const handleClickOutside = (event: MouseEvent) => {
-  const target = event.target as HTMLElement
-  if (!target.closest('.column-settings-container')) {
-    showColumnSettings.value = false
-  }
 }
 
 // CSVダウンロード
@@ -324,14 +384,53 @@ const handleFiltersUpdate = (filters: {
   updateSummaryData()
 }
 
-// トレンドチャートデータ
+// 比較用のカラーパレット
+const comparisonColors = [
+  '#3b82f6', // blue
+  '#10b981', // green
+  '#f97316', // orange
+  '#ef4444', // red
+  '#8b5cf6', // violet
+  '#06b6d4', // cyan
+  '#ec4899', // pink
+  '#84cc16', // lime
+  '#f59e0b', // amber
+  '#6366f1'  // indigo
+]
+
+// トレンドチャートデータ（フィルター対応）
 const trendChartLabels = computed(() => {
-  const trend = getMonthlyTrendData()
+  const trend = getComparisonTrendData(chartCompareAxis.value, currentFilters.value)
   return trend.labels
 })
 
 const trendChartDatasets = computed(() => {
-  const trend = getMonthlyTrendData()
+  const result = getComparisonTrendData(chartCompareAxis.value, currentFilters.value)
+
+  // 比較モードの場合
+  if ('series' in result && result.isComparison) {
+    // 各グループの平均スコアを折れ線グラフとして表示
+    return result.series.map((series: { name: string; avgScoreData: (number | null)[] }, index: number) => ({
+      label: series.name,
+      data: series.avgScoreData,
+      type: 'line' as const,
+      borderColor: comparisonColors[index % comparisonColors.length],
+      backgroundColor: 'transparent',
+      yAxisID: 'y1',
+      order: index
+    }))
+  }
+
+  // 比較なし（通常モード）の場合
+  const trend = result as {
+    labels: string[]
+    playCountData: (number | null)[]
+    clearCountData: (number | null)[]
+    avgScoreData: (number | null)[]
+    bestScoreData: (number | null)[]
+    uniquePlayerData: (number | null)[]
+  }
+
   return [
     // 面グラフ - ユニークプレイ人数（一番奥）
     {
@@ -343,23 +442,23 @@ const trendChartDatasets = computed(() => {
       yAxisID: 'y',
       order: 4
     },
-    // 棒グラフ - プレイ数（奥）
-    {
-      label: 'プレイ数',
-      data: trend.playCountData,
-      type: 'bar' as const,
-      borderColor: '#3b82f6',
-      backgroundColor: 'rgba(59, 130, 246, 0.6)',
-      yAxisID: 'y',
-      order: 3
-    },
-    // 棒グラフ - クリア数（手前に重ねる）
+    // 棒グラフ - クリア数（奥）
     {
       label: 'クリア数',
       data: trend.clearCountData,
       type: 'bar' as const,
       borderColor: '#10b981',
-      backgroundColor: 'rgba(16, 185, 129, 0.8)',
+      backgroundColor: 'rgba(16, 185, 129, 0.6)',
+      yAxisID: 'y',
+      order: 3
+    },
+    // 棒グラフ - プレイ数（手前に重ねる）
+    {
+      label: 'プレイ数',
+      data: trend.playCountData,
+      type: 'bar' as const,
+      borderColor: '#3b82f6',
+      backgroundColor: 'rgba(59, 130, 246, 0.8)',
       yAxisID: 'y',
       order: 2
     },
@@ -404,13 +503,6 @@ onMounted(async () => {
       console.error('デモデータの読み込みに失敗しました:', error)
     }
   }
-
-  // クリックイベントリスナー追加
-  document.addEventListener('click', handleClickOutside)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside)
 })
 </script>
 
@@ -419,156 +511,307 @@ onUnmounted(() => {
   white-space: pre-line;
 }
 
-.summary-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
+/* ========================================
+   統計カード
+   ======================================== */
+.stats-card {
+  border-left: 4px solid #0ea5e9;
 }
 
-.table-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.download-button {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  background: white;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 13px;
-  color: #4b5563;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.download-button:hover {
-  background: #f9fafb;
-  border-color: #9ca3af;
-}
-
-.column-settings-container {
-  position: relative;
-}
-
-.column-settings-button {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  background: white;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 13px;
-  color: #4b5563;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.column-settings-button:hover {
-  background: #f9fafb;
-  border-color: #9ca3af;
-}
-
-.column-settings-dropdown {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  margin-top: 4px;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  min-width: 180px;
-  z-index: 50;
-  padding: 8px 0;
-}
-
-.column-settings-title {
-  padding: 8px 12px;
-  font-size: 12px;
-  font-weight: 600;
-  color: #6b7280;
-  border-bottom: 1px solid #e5e7eb;
-  margin-bottom: 4px;
-}
-
-.column-settings-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  font-size: 13px;
-  color: #374151;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.column-settings-item:hover {
-  background: #f3f4f6;
-}
-
-.column-settings-checkbox {
-  width: 16px;
-  height: 16px;
-  accent-color: #3b82f6;
-  cursor: pointer;
-}
-
-/* 集計データセクション */
 .stats-header-row {
   display: flex;
   align-items: center;
-  gap: 16px;
-  margin-bottom: 12px;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .stats-header {
-  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
   font-weight: 600;
-  color: #374151;
+  color: #1e293b;
+}
+
+.stats-header-icon {
+  font-size: 20px;
+  color: #0ea5e9;
 }
 
 .stats-period {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 13px;
-  color: #9ca3af;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 6px 12px;
+  border-radius: 20px;
+}
+
+.period-icon {
+  font-size: 14px;
+  color: #94a3b8;
 }
 
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
+  gap: 20px;
+}
+
+.stat-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 12px;
+  border-left: 3px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.stat-item:hover {
+  background: #f1f5f9;
+  transform: translateY(-2px);
+}
+
+.stat-time { border-left-color: #0ea5e9; }
+.stat-play { border-left-color: #10b981; }
+.stat-players { border-left-color: #8b5cf6; }
+.stat-lessons { border-left-color: #f59e0b; }
+
+.stat-icon-wrapper {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.stat-time .stat-icon-wrapper { background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%); }
+.stat-play .stat-icon-wrapper { background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); }
+.stat-players .stat-icon-wrapper { background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%); }
+.stat-lessons .stat-icon-wrapper { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); }
+
+.stat-icon {
+  font-size: 22px;
+}
+
+.stat-time .stat-icon { color: #0284c7; }
+.stat-play .stat-icon { color: #059669; }
+.stat-players .stat-icon { color: #7c3aed; }
+.stat-lessons .stat-icon { color: #d97706; }
+
+.stat-content {
+  flex: 1;
+  min-width: 0;
 }
 
 .stats-label {
   font-size: 12px;
-  color: #6b7280;
+  font-weight: 500;
+  color: #64748b;
   margin-bottom: 4px;
 }
 
 .stats-value {
-  font-size: 24px;
+  font-size: 22px;
+  font-weight: 700;
+  color: #1e293b;
+  line-height: 1.2;
+}
+
+/* ========================================
+   チャートカード
+   ======================================== */
+.chart-card {
+  border-left: 4px solid #8b5cf6;
+}
+
+.chart-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
   font-weight: 600;
-  color: #1f2937;
+  color: #1e293b;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e2e8f0;
 }
 
-@media (max-width: 768px) {
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
+.chart-header-icon {
+  font-size: 20px;
+  color: #8b5cf6;
 }
 
-/* サマリーテーブルのフォントを小さく */
-.data-table {
+/* ========================================
+   テーブルカード
+   ======================================== */
+.table-card {
+  border-left: 4px solid #10b981;
+}
+
+.table-card-header {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.table-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.table-title-icon {
+  font-size: 20px;
+  color: #10b981;
+}
+
+.summary-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+.table-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 表示設定 */
+.display-settings-row {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.display-setting-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.setting-icon {
+  font-size: 16px;
+  color: #94a3b8;
+}
+
+.display-setting-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+  white-space: nowrap;
+}
+
+/* 列設定ポップアップ */
+.column-settings-popup {
+  padding: 8px;
+  min-width: 180px;
+}
+
+.column-settings-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  padding: 8px 12px;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 4px;
+}
+
+.column-icon {
+  font-size: 14px;
+  color: #94a3b8;
+}
+
+.column-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: #475569;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.15s ease;
+}
+
+.column-option:hover {
+  background: #f1f5f9;
+}
+
+/* データテーブル */
+.data-table {
+  font-size: 13px;
 }
 
 .data-table th,
 .data-table td {
-  padding: 0.5rem 0.75rem;
+  padding: 10px 12px;
+}
+
+/* ========================================
+   レスポンシブ
+   ======================================== */
+@media (max-width: 1024px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .summary-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .display-settings-row {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+    width: 100%;
+  }
+
+  .table-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 640px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stat-item {
+    padding: 12px;
+  }
+
+  .stats-value {
+    font-size: 18px;
+  }
+
+  .stats-header-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
 }
 </style>

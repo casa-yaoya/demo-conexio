@@ -51,10 +51,24 @@
                 class="cc-mission-input"
                 placeholder="必須タスクを入力"
               >
-              <button class="cc-mission-remove" @click="removeMissionItem('required', index)">×</button>
+              <UButton
+                size="xs"
+                color="error"
+                variant="soft"
+                icon="i-lucide-x"
+                @click="removeMissionItem('required', index)"
+              />
             </div>
           </div>
-          <button class="cc-mission-add" @click="addMissionItem('required')">+ 追加</button>
+          <UButton
+            size="sm"
+            variant="outline"
+            color="neutral"
+            class="cc-mission-add"
+            @click="addMissionItem('required')"
+          >
+            + 追加
+          </UButton>
         </div>
 
         <!-- 採点ミッション -->
@@ -75,10 +89,24 @@
                 class="cc-mission-input"
                 placeholder="採点タスクを入力"
               >
-              <button class="cc-mission-remove" @click="removeMissionItem('scoring', index)">×</button>
+              <UButton
+                size="xs"
+                color="error"
+                variant="soft"
+                icon="i-lucide-x"
+                @click="removeMissionItem('scoring', index)"
+              />
             </div>
           </div>
-          <button class="cc-mission-add" @click="addMissionItem('scoring')">+ 追加</button>
+          <UButton
+            size="sm"
+            variant="outline"
+            color="neutral"
+            class="cc-mission-add"
+            @click="addMissionItem('scoring')"
+          >
+            + 追加
+          </UButton>
         </div>
 
         <!-- 失敗ミッション -->
@@ -99,10 +127,24 @@
                 class="cc-mission-input"
                 placeholder="失敗条件を入力"
               >
-              <button class="cc-mission-remove" @click="removeMissionItem('failure', index)">×</button>
+              <UButton
+                size="xs"
+                color="error"
+                variant="soft"
+                icon="i-lucide-x"
+                @click="removeMissionItem('failure', index)"
+              />
             </div>
           </div>
-          <button class="cc-mission-add" @click="addMissionItem('failure')">+ 追加</button>
+          <UButton
+            size="sm"
+            variant="outline"
+            color="neutral"
+            class="cc-mission-add"
+            @click="addMissionItem('failure')"
+          >
+            + 追加
+          </UButton>
         </div>
       </div>
     </div>
@@ -143,10 +185,24 @@
               placeholder="具体的な回答例を入力"
             ></textarea>
           </div>
-          <button class="cc-point-remove" @click="removePoint(index)">削除</button>
+          <UButton
+            size="xs"
+            color="error"
+            variant="soft"
+            @click="removePoint(index)"
+          >
+            削除
+          </UButton>
         </div>
       </div>
-      <button class="cc-point-add" @click="addPoint()">+ ポイントを追加</button>
+      <UButton
+        variant="outline"
+        color="neutral"
+        class="cc-point-add"
+        @click="addPoint()"
+      >
+        + ポイントを追加
+      </UButton>
     </div>
   </div>
 </template>
@@ -319,38 +375,8 @@ defineExpose({ design })
   border-color: #3b82f6;
 }
 
-.cc-mission-remove {
-  width: 28px;
-  height: 28px;
-  background: #fee2e2;
-  color: #dc2626;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: all 0.2s;
-}
-
-.cc-mission-remove:hover {
-  background: #fecaca;
-}
-
 .cc-mission-add {
   margin-top: 8px;
-  padding: 6px 12px;
-  background: transparent;
-  border: 1px dashed #d1d5db;
-  border-radius: 4px;
-  color: #6b7280;
-  cursor: pointer;
-  font-size: 12px;
-  transition: all 0.2s;
-}
-
-.cc-mission-add:hover {
-  background: white;
-  border-color: #3b82f6;
-  color: #3b82f6;
 }
 
 /* ポイントコンテナ */
@@ -399,35 +425,7 @@ defineExpose({ design })
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
-.cc-point-remove {
-  padding: 4px 8px;
-  background: #fee2e2;
-  color: #dc2626;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
-  transition: all 0.2s;
-}
-
-.cc-point-remove:hover {
-  background: #fecaca;
-}
-
 .cc-point-add {
-  padding: 10px 16px;
-  background: transparent;
-  border: 1px dashed #d1d5db;
-  border-radius: 6px;
-  color: #6b7280;
-  cursor: pointer;
-  font-size: 13px;
-  transition: all 0.2s;
-}
-
-.cc-point-add:hover {
-  background: white;
-  border-color: #3b82f6;
-  color: #3b82f6;
+  margin-top: 8px;
 }
 </style>

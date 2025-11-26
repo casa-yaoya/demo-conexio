@@ -1,37 +1,39 @@
 <template>
-  <div v-if="isOpen" class="popup-overlay" @click.self="close">
-    <div class="popup-container">
-      <div class="popup-header">
-        <h3 class="popup-title">キャラクター設定</h3>
-        <button class="popup-close" @click="close">×</button>
-      </div>
+  <UModal v-model:open="modalOpen">
+    <template #header>
+      <h3 class="text-lg font-semibold text-gray-900">キャラクター設定</h3>
+    </template>
 
-      <div class="popup-content">
+    <template #body>
+      <div class="space-y-6">
         <!-- キャラクター選択 -->
         <div class="setting-section">
           <label class="setting-label">キャラクター</label>
           <div class="character-grid">
-            <button
+            <UButton
               v-for="char in characters"
               :key="char.id"
+              :variant="selectedCharacter === char.id ? 'soft' : 'outline'"
+              :color="selectedCharacter === char.id ? 'primary' : 'neutral'"
               class="character-option"
-              :class="{ selected: selectedCharacter === char.id }"
               @click="selectedCharacter = char.id"
             >
-              <span class="character-icon">{{ char.icon }}</span>
-              <span class="character-name">{{ char.name }}</span>
-            </button>
+              <template #leading>
+                <span class="text-xl">{{ char.icon }}</span>
+              </template>
+              <span class="text-xs">{{ char.name }}</span>
+            </UButton>
           </div>
         </div>
 
         <!-- 音声設定 -->
         <div class="setting-section">
           <label class="setting-label">音声タイプ</label>
-          <select v-model="selectedVoice" class="setting-select">
-            <option v-for="voice in voices" :key="voice.id" :value="voice.id">
-              {{ voice.name }}
-            </option>
-          </select>
+          <USelect
+            v-model="selectedVoice"
+            :items="voiceOptions"
+            class="w-full"
+          />
         </div>
 
         <!-- 話速設定 -->
@@ -54,53 +56,146 @@
         <div class="setting-section">
           <label class="setting-label">声のトーン</label>
           <div class="tone-options">
-            <button
+            <UButton
               v-for="tone in tones"
               :key="tone.id"
-              class="tone-option"
-              :class="{ selected: selectedTone === tone.id }"
+              :variant="selectedTone === tone.id ? 'soft' : 'outline'"
+              :color="selectedTone === tone.id ? 'primary' : 'neutral'"
+              size="sm"
               @click="selectedTone = tone.id"
             >
               {{ tone.label }}
-            </button>
+            </UButton>
           </div>
         </div>
 
         <!-- 応答スタイル -->
         <div class="setting-section">
           <label class="setting-label">応答スタイル</label>
-          <select v-model="responseStyle" class="setting-select">
-            <option value="friendly">フレンドリー</option>
-            <option value="professional">プロフェッショナル</option>
-            <option value="casual">カジュアル</option>
-            <option value="formal">フォーマル</option>
-          </select>
+          <USelect
+            v-model="responseStyle"
+            :items="responseStyleOptions"
+            class="w-full"
+          />
         </div>
 
         <!-- 難易度 -->
         <div class="setting-section">
           <label class="setting-label">難易度</label>
           <div class="difficulty-options">
-            <button
+            <UButton
               v-for="diff in difficulties"
               :key="diff.id"
+              :variant="selectedDifficulty === diff.id ? 'soft' : 'outline'"
+              :color="selectedDifficulty === diff.id ? 'primary' : 'neutral'"
               class="difficulty-option"
-              :class="{ selected: selectedDifficulty === diff.id }"
               @click="selectedDifficulty = diff.id"
             >
-              <span class="difficulty-stars">{{ diff.stars }}</span>
-              <span class="difficulty-name">{{ diff.name }}</span>
-            </button>
+              <span class="text-sm">{{ diff.stars }}</span>
+              <span class="text-xs">{{ diff.name }}</span>
+            </UButton>
           </div>
         </div>
-      </div>
 
-      <div class="popup-footer">
-        <button class="popup-button secondary" @click="resetToDefaults">デフォルトに戻す</button>
-        <button class="popup-button primary" @click="applySettings">適用</button>
+        <!-- カスタムアニメーション -->
+        <div class="setting-section custom-animation-section">
+          <label class="setting-label">カスタム:</label>
+          <div class="custom-animation-grid">
+            <!-- 聞く時のアニメーション -->
+            <div
+              class="custom-animation-dropzone"
+              :class="{ 'has-file': customListeningVideo }"
+              @dragenter.prevent="onDragEnter('listening', $event)"
+              @dragover.prevent="onDragOver"
+              @dragleave.prevent="onDragLeave('listening')"
+              @drop.prevent="onDrop('listening', $event)"
+              @click="triggerFileInput('listening')"
+            >
+              <div v-if="customListeningVideo" class="dropzone-preview">
+                <video :src="customListeningVideo" class="preview-video" muted loop autoplay></video>
+                <UButton
+                  icon="i-lucide-x"
+                  color="error"
+                  variant="solid"
+                  size="xs"
+                  class="absolute top-1 right-1"
+                  @click.stop="removeFile('listening')"
+                />
+              </div>
+              <div v-else class="dropzone-content">
+                <span class="dropzone-icon">👂</span>
+                <span class="dropzone-label">聞く時</span>
+                <span class="dropzone-hint">.webm</span>
+              </div>
+            </div>
+
+            <!-- 話す時のアニメーション -->
+            <div
+              class="custom-animation-dropzone"
+              :class="{ 'has-file': customSpeakingVideo }"
+              @dragenter.prevent="onDragEnter('speaking', $event)"
+              @dragover.prevent="onDragOver"
+              @dragleave.prevent="onDragLeave('speaking')"
+              @drop.prevent="onDrop('speaking', $event)"
+              @click="triggerFileInput('speaking')"
+            >
+              <div v-if="customSpeakingVideo" class="dropzone-preview">
+                <video :src="customSpeakingVideo" class="preview-video" muted loop autoplay></video>
+                <UButton
+                  icon="i-lucide-x"
+                  color="error"
+                  variant="solid"
+                  size="xs"
+                  class="absolute top-1 right-1"
+                  @click.stop="removeFile('speaking')"
+                />
+              </div>
+              <div v-else class="dropzone-content">
+                <span class="dropzone-icon">🗣️</span>
+                <span class="dropzone-label">話す時</span>
+                <span class="dropzone-hint">.webm</span>
+              </div>
+            </div>
+          </div>
+          <!-- Hidden file inputs -->
+          <input
+            ref="listeningFileInput"
+            type="file"
+            accept=".webm,video/webm"
+            style="display: none"
+            @change="handleFileSelect('listening', $event)"
+          >
+          <input
+            ref="speakingFileInput"
+            type="file"
+            accept=".webm,video/webm"
+            style="display: none"
+            @change="handleFileSelect('speaking', $event)"
+          >
+        </div>
       </div>
-    </div>
-  </div>
+    </template>
+
+    <template #footer>
+      <div class="flex gap-3 w-full">
+        <UButton
+          variant="outline"
+          color="neutral"
+          class="flex-1"
+          @click="resetToDefaults"
+        >
+          デフォルトに戻す
+        </UButton>
+        <UButton
+          color="primary"
+          class="flex-1"
+          @click="applySettings"
+        >
+          適用
+        </UButton>
+      </div>
+    </template>
+  </UModal>
 </template>
 
 <script setup lang="ts">
@@ -111,6 +206,8 @@ export interface CharacterSettings {
   tone: string
   responseStyle: string
   difficulty: string
+  customListeningVideo?: string | null
+  customSpeakingVideo?: string | null
 }
 
 const props = defineProps<{
@@ -123,6 +220,22 @@ const emit = defineEmits<{
   apply: [settings: CharacterSettings]
 }>()
 
+// モーダルの開閉状態（propsと同期）
+const modalOpen = computed({
+  get: () => props.isOpen,
+  set: (value: boolean) => {
+    if (!value) emit('close')
+  }
+})
+
+// Custom animation file refs
+const listeningFileInput = ref<HTMLInputElement | null>(null)
+const speakingFileInput = ref<HTMLInputElement | null>(null)
+const customListeningVideo = ref<string | null>(null)
+const customSpeakingVideo = ref<string | null>(null)
+const isDraggingListening = ref(false)
+const isDraggingSpeaking = ref(false)
+
 // キャラクター一覧
 const characters = [
   { id: 'businessman', icon: '👔', name: 'ビジネスマン' },
@@ -133,14 +246,22 @@ const characters = [
   { id: 'receptionist', icon: '💁‍♀️', name: '受付' }
 ]
 
-// 音声一覧
-const voices = [
-  { id: 'alloy', name: 'Alloy (中性的)' },
-  { id: 'echo', name: 'Echo (男性的)' },
-  { id: 'fable', name: 'Fable (表現力豊か)' },
-  { id: 'onyx', name: 'Onyx (深い男性)' },
-  { id: 'nova', name: 'Nova (女性的)' },
-  { id: 'shimmer', name: 'Shimmer (明るい女性)' }
+// 音声一覧（USelect用）
+const voiceOptions = [
+  { label: 'Alloy (中性的)', value: 'alloy' },
+  { label: 'Echo (男性的)', value: 'echo' },
+  { label: 'Fable (表現力豊か)', value: 'fable' },
+  { label: 'Onyx (深い男性)', value: 'onyx' },
+  { label: 'Nova (女性的)', value: 'nova' },
+  { label: 'Shimmer (明るい女性)', value: 'shimmer' }
+]
+
+// 応答スタイル（USelect用）
+const responseStyleOptions = [
+  { label: 'フレンドリー', value: 'friendly' },
+  { label: 'プロフェッショナル', value: 'professional' },
+  { label: 'カジュアル', value: 'casual' },
+  { label: 'フォーマル', value: 'formal' }
 ]
 
 // トーン
@@ -178,10 +299,6 @@ watch(() => props.currentSettings, (newSettings) => {
   }
 }, { immediate: true })
 
-const close = () => {
-  emit('close')
-}
-
 const resetToDefaults = () => {
   selectedCharacter.value = 'businessman'
   selectedVoice.value = 'alloy'
@@ -189,6 +306,8 @@ const resetToDefaults = () => {
   selectedTone.value = 'neutral'
   responseStyle.value = 'professional'
   selectedDifficulty.value = 'normal'
+  customListeningVideo.value = null
+  customSpeakingVideo.value = null
 }
 
 const applySettings = () => {
@@ -198,78 +317,84 @@ const applySettings = () => {
     speechRate: speechRate.value,
     tone: selectedTone.value,
     responseStyle: responseStyle.value,
-    difficulty: selectedDifficulty.value
+    difficulty: selectedDifficulty.value,
+    customListeningVideo: customListeningVideo.value,
+    customSpeakingVideo: customSpeakingVideo.value
   })
-  close()
+  modalOpen.value = false
+}
+
+// Custom animation file handlers
+const triggerFileInput = (type: 'listening' | 'speaking') => {
+  if (type === 'listening') {
+    listeningFileInput.value?.click()
+  } else {
+    speakingFileInput.value?.click()
+  }
+}
+
+const handleFileSelect = (type: 'listening' | 'speaking', event: Event) => {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (file && file.type === 'video/webm') {
+    processFile(type, file)
+  }
+  input.value = ''
+}
+
+const onDragEnter = (type: 'listening' | 'speaking', _event: DragEvent) => {
+  if (type === 'listening') {
+    isDraggingListening.value = true
+  } else {
+    isDraggingSpeaking.value = true
+  }
+}
+
+const onDragOver = (event: DragEvent) => {
+  event.dataTransfer!.dropEffect = 'copy'
+}
+
+const onDragLeave = (type: 'listening' | 'speaking') => {
+  if (type === 'listening') {
+    isDraggingListening.value = false
+  } else {
+    isDraggingSpeaking.value = false
+  }
+}
+
+const onDrop = (type: 'listening' | 'speaking', event: DragEvent) => {
+  isDraggingListening.value = false
+  isDraggingSpeaking.value = false
+
+  const file = event.dataTransfer?.files[0]
+  if (file && file.type === 'video/webm') {
+    processFile(type, file)
+  }
+}
+
+const processFile = (type: 'listening' | 'speaking', file: File) => {
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    const dataUrl = e.target?.result as string
+    if (type === 'listening') {
+      customListeningVideo.value = dataUrl
+    } else {
+      customSpeakingVideo.value = dataUrl
+    }
+  }
+  reader.readAsDataURL(file)
+}
+
+const removeFile = (type: 'listening' | 'speaking') => {
+  if (type === 'listening') {
+    customListeningVideo.value = null
+  } else {
+    customSpeakingVideo.value = null
+  }
 }
 </script>
 
 <style scoped>
-.popup-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-}
-
-.popup-container {
-  background: white;
-  border-radius: 12px;
-  max-width: 480px;
-  width: 90%;
-  max-height: 85vh;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-}
-
-.popup-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.popup-title {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #1f2937;
-}
-
-.popup-close {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: none;
-  background: #f3f4f6;
-  color: #6b7280;
-  font-size: 1.25rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.15s;
-}
-
-.popup-close:hover {
-  background: #e5e7eb;
-  color: #374151;
-}
-
-.popup-content {
-  flex: 1;
-  overflow-y: auto;
-  padding: 1.5rem;
-}
-
 .setting-section {
   margin-bottom: 1.5rem;
 }
@@ -322,22 +447,6 @@ const applySettings = () => {
 .character-name {
   font-size: 0.75rem;
   color: #4b5563;
-}
-
-.setting-select {
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  color: #1f2937;
-  background: white;
-}
-
-.setting-select:focus {
-  outline: none;
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 .slider-container {
@@ -438,41 +547,77 @@ const applySettings = () => {
   color: #4b5563;
 }
 
-.popup-footer {
-  display: flex;
-  gap: 0.75rem;
-  padding: 1rem 1.5rem;
+/* Custom animation section styles */
+.custom-animation-section {
   border-top: 1px solid #e5e7eb;
+  padding-top: 1rem;
+  margin-top: 0.5rem;
+}
+
+.custom-animation-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.custom-animation-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+  border: 2px dashed #d1d5db;
+  border-radius: 8px;
   background: #f9fafb;
-}
-
-.popup-button {
-  flex: 1;
-  padding: 0.625rem 1rem;
-  border-radius: 6px;
-  font-weight: 500;
-  font-size: 0.875rem;
   cursor: pointer;
-  transition: all 0.15s;
-  border: none;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
 }
 
-.popup-button.secondary {
-  background: white;
+.custom-animation-dropzone:hover {
+  border-color: #93c5fd;
+  background: #eff6ff;
+}
+
+.custom-animation-dropzone.has-file {
+  border-style: solid;
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.dropzone-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 1rem;
+}
+
+.dropzone-icon {
+  font-size: 1.5rem;
+}
+
+.dropzone-label {
+  font-size: 0.875rem;
+  font-weight: 500;
   color: #374151;
-  border: 1px solid #d1d5db;
 }
 
-.popup-button.secondary:hover {
-  background: #f3f4f6;
+.dropzone-hint {
+  font-size: 0.75rem;
+  color: #9ca3af;
 }
 
-.popup-button.primary {
-  background: #2563eb;
-  color: white;
+.dropzone-preview {
+  width: 100%;
+  height: 100%;
+  position: relative;
 }
 
-.popup-button.primary:hover {
-  background: #1d4ed8;
+.preview-video {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
 }
 </style>

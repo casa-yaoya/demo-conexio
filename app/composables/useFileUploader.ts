@@ -7,7 +7,7 @@ interface AnalysisResult {
   error?: string
 }
 
-export const useFileUpload = () => {
+export const useFileUploader = () => {
   const uploadedFiles = ref<UploadedFile[]>([])
   const isUploading = ref(false)
   const isAnalyzing = ref(false)

@@ -109,27 +109,24 @@
             </div>
 
             <div class="file-card-actions">
-              <button
+              <UButton
                 v-if="file.extractedText && !file.extractedText.startsWith('[')"
-                class="expand-btn"
-                :class="{ 'rotated': expandedFileId === file.id }"
-                @click.stop="toggleFileExpand(file.id)"
+                size="xs"
+                variant="outline"
+                color="neutral"
+                icon="i-lucide-chevron-down"
+                :class="{ 'rotate-180': expandedFileId === file.id }"
                 aria-label="詳細"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
-              </button>
-              <button
-                class="file-remove-btn"
-                @click.stop="removeFile(file.id)"
+                @click.stop="toggleFileExpand(file.id)"
+              />
+              <UButton
+                size="xs"
+                variant="outline"
+                color="neutral"
+                icon="i-lucide-x"
                 aria-label="削除"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </button>
+                @click.stop="removeFile(file.id)"
+              />
             </div>
           </div>
 
@@ -137,13 +134,15 @@
           <div v-if="expandedFileId === file.id && file.extractedText" class="file-expanded-content">
             <div class="extracted-text-header">
               <span class="extracted-text-label">抽出テキスト</span>
-              <button class="copy-btn" @click.stop="copyText(file.extractedText)">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                </svg>
+              <UButton
+                size="xs"
+                variant="outline"
+                color="neutral"
+                icon="i-lucide-copy"
+                @click.stop="copyText(file.extractedText)"
+              >
                 コピー
-              </button>
+              </UButton>
             </div>
             <div class="extracted-text-content">
               <pre>{{ file.extractedText }}</pre>
@@ -165,7 +164,7 @@ const {
   uploadFiles,
   removeFile,
   formatFileSize
-} = useFileUpload()
+} = useFileUploader()
 
 const fileInput = ref<HTMLInputElement | null>(null)
 const isDragging = ref(false)

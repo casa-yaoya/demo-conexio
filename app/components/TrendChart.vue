@@ -149,6 +149,8 @@ const chartOptions = {
     mode: 'index' as const,
     intersect: false
   },
+  barPercentage: 0.6,      // 棒グラフの幅（0.0〜1.0）
+  categoryPercentage: 0.7, // カテゴリ内での棒の幅
   plugins: {
     legend: {
       display: true,
@@ -213,13 +215,17 @@ const chartOptions = {
         text: 'スコア'
       },
       min: 0,
-      max: 100,
+      max: 110,  // 100点満点だが上部に余白を確保
       grid: {
         drawOnChartArea: false  // 右軸のグリッド線は非表示
       },
       ticks: {
         font: {
           size: 11
+        },
+        stepSize: 20,  // 0, 20, 40, 60, 80, 100 で表示
+        callback: function(value: number) {
+          return value <= 100 ? value : ''  // 100より大きい値は非表示
         }
       }
     }

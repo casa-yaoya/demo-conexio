@@ -835,7 +835,270 @@ export const useDemoData = () => {
     }
   }
 
-  // 月別トレンドデータを取得
+  // 月別トレンドデータを取得（フィルター対応版）
+  const getFilteredMonthlyTrendData = (filters: {
+    lessons?: string[]
+    levels?: string[]
+    players?: string[]
+    dateFrom?: Date | null
+    dateTo?: Date | null
+  }) => {
+    // フィルターを適用
+    const filtered = applyFilters(allSessions.value, filters)
+
+    const monthMap = new Map<string, {
+      playCount: number
+      clearCount: number
+      totalScore: number
+      scoreCount: number
+      bestScore: number
+      uniquePlayers: Set<string>
+    }>()
+
+    filtered.forEach(session => {
+      const monthKey = `${session.date.getFullYear()}-${String(session.date.getMonth() + 1).padStart(2, '0')}`
+      const existing = monthMap.get(monthKey)
+
+      if (existing) {
+        existing.playCount++
+        if (session.score >= 70) existing.clearCount++
+        existing.totalScore += session.score
+        existing.scoreCount++
+        if (session.score > existing.bestScore) existing.bestScore = session.score
+        existing.uniquePlayers.add(session.player)
+      } else {
+        monthMap.set(monthKey, {
+          playCount: 1,
+          clearCount: session.score >= 70 ? 1 : 0,
+          totalScore: session.score,
+          scoreCount: 1,
+          bestScore: session.score,
+          uniquePlayers: new Set([session.player])
+        })
+      }
+    })
+
+    // 月順にソート
+    const sortedMonths = Array.from(monthMap.keys()).sort()
+
+    // 最小6ヶ月表示の処理
+    let months = [...sortedMonths]
+    if (months.length > 0 && months.length < 6) {
+      const monthsToAdd = 6 - months.length
+      const [year, month] = months[0].split('-').map(Number)
+      const startDate = new Date(year, month - 1, 1)
+
+      const allMonths: string[] = []
+      for (let i = monthsToAdd; i > 0; i--) {
+        const targetDate = new Date(startDate)
+        targetDate.setMonth(startDate.getMonth() - i)
+        const monthKey = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}`
+        allMonths.push(monthKey)
+      }
+      months = [...allMonths, ...months]
+    }
+
+    const labels = months.map(m => {
+      const [, month] = m.split('-')
+      return `${parseInt(month)}月`
+    })
+
+    const playCountData = months.map(m => {
+      const data = monthMap.get(m)
+      return data ? data.playCount : null
+    })
+
+    const clearCountData = months.map(m => {
+      const data = monthMap.get(m)
+      return data ? data.clearCount : null
+    })
+
+    const avgScoreData = months.map(m => {
+      const data = monthMap.get(m)
+      if (data && data.scoreCount > 0) {
+        return parseFloat((data.totalScore / data.scoreCount).toFixed(1))
+      }
+      return null
+    })
+
+    const bestScoreData = months.map(m => {
+      const data = monthMap.get(m)
+      return data ? data.bestScore : null
+    })
+
+    const uniquePlayerData = months.map(m => {
+      const data = monthMap.get(m)
+      return data ? data.uniquePlayers.size : null
+    })
+
+    return {
+      labels,
+      playCountData,
+      clearCountData,
+      avgScoreData,
+      bestScoreData,
+      uniquePlayerData
+    }
+  }
+
+  // 比較軸別の月別トレンドデータを取得
+  const getComparisonTrendData = (
+    compareAxis: 'none' | 'account' | 'group' | 'player' | 'category' | 'level' | 'lesson',
+    filters: {
+      lessons?: string[]
+      levels?: string[]
+      players?: string[]
+      dateFrom?: Date | null
+      dateTo?: Date | null
+    }
+  ) => {
+    // フィルターを適用
+    const filtered = applyFilters(allSessions.value, filters)
+
+    if (compareAxis === 'none') {
+      // 比較なし - 既存のgetFilteredMonthlyTrendDataと同じ動作
+      return getFilteredMonthlyTrendData(filters)
+    }
+
+    // 比較軸ごとにグループ化
+    const groupMap = new Map<string, SessionData[]>()
+
+    filtered.forEach(session => {
+      let key: string
+      switch (compareAxis) {
+        case 'account':
+          key = session.account
+          break
+        case 'group':
+          key = session.group
+          break
+        case 'player':
+          key = session.player
+          break
+        case 'category':
+          key = session.category
+          break
+        case 'level':
+          key = `Lv.${session.level}`
+          break
+        case 'lesson':
+          key = session.lesson
+          break
+        default:
+          key = 'all'
+      }
+
+      if (!groupMap.has(key)) {
+        groupMap.set(key, [])
+      }
+      groupMap.get(key)!.push(session)
+    })
+
+    // 全体の月リストを作成
+    const allMonthsSet = new Set<string>()
+    filtered.forEach(session => {
+      const monthKey = `${session.date.getFullYear()}-${String(session.date.getMonth() + 1).padStart(2, '0')}`
+      allMonthsSet.add(monthKey)
+    })
+
+    let months = Array.from(allMonthsSet).sort()
+
+    // 最小6ヶ月表示の処理
+    if (months.length > 0 && months.length < 6) {
+      const monthsToAdd = 6 - months.length
+      const [year, month] = months[0].split('-').map(Number)
+      const startDate = new Date(year, month - 1, 1)
+
+      const allMonths: string[] = []
+      for (let i = monthsToAdd; i > 0; i--) {
+        const targetDate = new Date(startDate)
+        targetDate.setMonth(startDate.getMonth() - i)
+        const monthKey = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}`
+        allMonths.push(monthKey)
+      }
+      months = [...allMonths, ...months]
+    }
+
+    const labels = months.map(m => {
+      const [, month] = m.split('-')
+      return `${parseInt(month)}月`
+    })
+
+    // 各グループのデータを計算
+    const seriesData: {
+      name: string
+      playCountData: (number | null)[]
+      clearCountData: (number | null)[]
+      avgScoreData: (number | null)[]
+    }[] = []
+
+    // グループ名をソート
+    const sortedGroupNames = Array.from(groupMap.keys()).sort()
+
+    sortedGroupNames.forEach(groupName => {
+      const sessions = groupMap.get(groupName)!
+
+      // このグループの月別集計
+      const monthStats = new Map<string, {
+        playCount: number
+        clearCount: number
+        totalScore: number
+        scoreCount: number
+      }>()
+
+      sessions.forEach(session => {
+        const monthKey = `${session.date.getFullYear()}-${String(session.date.getMonth() + 1).padStart(2, '0')}`
+        const existing = monthStats.get(monthKey)
+
+        if (existing) {
+          existing.playCount++
+          if (session.score >= 70) existing.clearCount++
+          existing.totalScore += session.score
+          existing.scoreCount++
+        } else {
+          monthStats.set(monthKey, {
+            playCount: 1,
+            clearCount: session.score >= 70 ? 1 : 0,
+            totalScore: session.score,
+            scoreCount: 1
+          })
+        }
+      })
+
+      const playCountData = months.map(m => {
+        const data = monthStats.get(m)
+        return data ? data.playCount : null
+      })
+
+      const clearCountData = months.map(m => {
+        const data = monthStats.get(m)
+        return data ? data.clearCount : null
+      })
+
+      const avgScoreData = months.map(m => {
+        const data = monthStats.get(m)
+        if (data && data.scoreCount > 0) {
+          return parseFloat((data.totalScore / data.scoreCount).toFixed(1))
+        }
+        return null
+      })
+
+      seriesData.push({
+        name: groupName,
+        playCountData,
+        clearCountData,
+        avgScoreData
+      })
+    })
+
+    return {
+      labels,
+      series: seriesData,
+      isComparison: true
+    }
+  }
+
+  // 月別トレンドデータを取得（フィルターなし版 - 後方互換性のため残す）
   const getMonthlyTrendData = () => {
     const monthMap = new Map<string, {
       playCount: number
@@ -951,6 +1214,8 @@ export const useDemoData = () => {
     getSummaryDataByLevel,
     getSummaryDataByCategory,
     getMonthlyTrendData,
+    getFilteredMonthlyTrendData,
+    getComparisonTrendData,
     getFilterOptions,
     getDateRange,
     getFilteredSummaryData,

@@ -19,39 +19,47 @@
       <div class="cc-category-selector">
         <div class="cc-category-select-wrapper">
           <label class="cc-category-label">コース:</label>
-          <select v-model="selectedCategory" class="cc-category-select">
-            <option value="sales-basics">営業基礎</option>
-            <option value="customer-service">カスタマーサービス</option>
-            <option value="presentation">プレゼンテーション</option>
-            <option value="negotiation">交渉術</option>
-            <option value="leadership">リーダーシップ</option>
-          </select>
+          <USelect
+            v-model="selectedCategory"
+            :items="categoryOptions"
+            size="sm"
+            class="cc-category-select"
+          />
         </div>
       </div>
 
       <!-- タブナビゲーション -->
       <div class="cc-operation-tabs">
-        <button
+        <UButton
+          variant="ghost"
+          color="neutral"
+          size="sm"
           class="cc-operation-tab"
           :class="{ active: operationTab === 'chat' }"
           @click="operationTab = 'chat'"
         >
           チャット
-        </button>
-        <button
+        </UButton>
+        <UButton
+          variant="ghost"
+          color="neutral"
+          size="sm"
           class="cc-operation-tab"
           :class="{ active: operationTab === 'course' }"
           @click="operationTab = 'course'"
         >
           コース
-        </button>
-        <button
+        </UButton>
+        <UButton
+          variant="ghost"
+          color="neutral"
+          size="sm"
           class="cc-operation-tab"
           :class="{ active: operationTab === 'files' }"
           @click="operationTab = 'files'"
         >
           ファイル
-        </button>
+        </UButton>
       </div>
 
       <!-- チャットタブ -->
@@ -102,12 +110,12 @@
 
           <!-- 操作ボタン -->
           <div class="cc-course-actions">
-            <button class="cc-button cc-button-secondary" @click="addNewCategory">
-              ➕ カテゴリーを追加
-            </button>
-            <button class="cc-button cc-button-secondary" @click="addNewLesson">
-              ➕ レッスンを追加
-            </button>
+            <UButton variant="outline" color="neutral" size="sm" @click="addNewCategory">
+              + カテゴリーを追加
+            </UButton>
+            <UButton variant="outline" color="neutral" size="sm" @click="addNewLesson">
+              + レッスンを追加
+            </UButton>
           </div>
         </div>
       </div>
@@ -137,21 +145,20 @@
                   <span class="cc-file-name">{{ file.name }}</span>
                   <span class="cc-file-date">{{ file.uploadDate }}</span>
                 </div>
-                <select
+                <USelect
                   v-model="file.dataType"
+                  :items="fileTypeOptions"
+                  size="xs"
                   class="cc-file-type-select"
                   @click.stop
-                >
-                  <option value="未分類">未分類</option>
-                  <option value="見本データ">見本データ</option>
-                  <option value="教材データ">教材データ</option>
-                  <option value="自社データ">自社データ</option>
-                  <option value="顧客データ">顧客データ</option>
-                  <option value="その他">その他</option>
-                </select>
-                <button class="cc-file-download-btn" @click.stop="downloadFile(file)" title="ダウンロード">
-                  ⬇️
-                </button>
+                />
+                <UButton
+                  variant="ghost"
+                  color="neutral"
+                  size="xs"
+                  icon="i-lucide-download"
+                  @click.stop="downloadFile(file)"
+                />
               </div>
               <!-- 抽出テキスト表示（展開時のみ） -->
               <div v-if="selectedFileIndex === index" class="cc-file-extracted-text">
@@ -172,17 +179,13 @@
       <div class="cc-play-header">
         <div class="cc-lesson-selector">
           <label class="cc-lesson-label">レッスン:</label>
-          <select v-model="selectedLesson" class="cc-lesson-dropdown">
-            <option value="">レッスンを選択...</option>
-            <optgroup label="Lv.1">
-              <option value="lv1-1">Lv.1: 飛び込み学習モード</option>
-              <option value="lv1-2">Lv.1: 話すことまとめ</option>
-            </optgroup>
-            <optgroup label="Lv.2">
-              <option value="lv2-1">Lv.2: 相手に寄り添うトーク</option>
-              <option value="lv2-2">Lv.2: 言葉の選び方</option>
-            </optgroup>
-          </select>
+          <USelect
+            v-model="selectedLesson"
+            :items="lessonOptions"
+            placeholder="レッスンを選択..."
+            size="sm"
+            class="cc-lesson-dropdown"
+          />
         </div>
       </div>
 
@@ -191,34 +194,42 @@
         <div class="cc-roleplay-mode-component">
           <div class="cc-mode-title">モードを選ぶ</div>
           <div class="cc-mode-buttons">
-            <button
+            <UButton
+              :variant="selectedMode === 'subtitle' ? 'solid' : 'outline'"
+              :color="selectedMode === 'subtitle' ? 'primary' : 'neutral'"
+              size="sm"
               class="cc-mode-button"
-              :class="{ active: selectedMode === 'subtitle' }"
               @click="selectedMode = 'subtitle'"
             >
               台本モード
-            </button>
-            <button
+            </UButton>
+            <UButton
+              :variant="selectedMode === 'ai-demo' ? 'solid' : 'outline'"
+              :color="selectedMode === 'ai-demo' ? 'primary' : 'neutral'"
+              size="sm"
               class="cc-mode-button"
-              :class="{ active: selectedMode === 'ai-demo' }"
               @click="selectedMode = 'ai-demo'"
             >
               お手本モード
-            </button>
-            <button
+            </UButton>
+            <UButton
+              :variant="selectedMode === 'confirmation' ? 'solid' : 'outline'"
+              :color="selectedMode === 'confirmation' ? 'primary' : 'neutral'"
+              size="sm"
               class="cc-mode-button"
-              :class="{ active: selectedMode === 'confirmation' }"
               @click="selectedMode = 'confirmation'"
             >
               確認モード
-            </button>
-            <button
+            </UButton>
+            <UButton
+              :variant="selectedMode === 'practice' ? 'solid' : 'outline'"
+              :color="selectedMode === 'practice' ? 'primary' : 'neutral'"
+              size="sm"
               class="cc-mode-button"
-              :class="{ active: selectedMode === 'practice' }"
               @click="selectedMode = 'practice'"
             >
               実戦モード
-            </button>
+            </UButton>
           </div>
         </div>
 
@@ -226,9 +237,16 @@
         <div class="cc-playback-component">
           <!-- Video Window -->
           <div class="cc-video-window-container">
-            <div class="cc-character-window">
-              <video id="characterVideo" class="cc-character-video" loop muted playsinline></video>
-              <div class="cc-character" id="character">👔</div>
+            <div class="cc-character-window" :class="{ 'cc-speaking': isSpeaking, 'cc-listening': isConnected && !isSpeaking }">
+              <video
+                ref="characterVideoRef"
+                id="characterVideo"
+                class="cc-character-video"
+                loop
+                muted
+                playsinline
+              ></video>
+              <div class="cc-character" id="character" :class="{ 'cc-character-speaking': isSpeaking }">👔</div>
 
               <!-- Connection Status -->
               <div class="cc-video-connection-status">
@@ -247,21 +265,25 @@
 
           <!-- 操作コンポーネント (Control Buttons) -->
           <div class="cc-control-component">
-            <button
+            <UButton
+              :variant="conversationActive ? 'solid' : 'outline'"
+              :color="conversationActive ? 'error' : 'primary'"
+              size="lg"
               class="cc-start-button-new"
-              :class="{ active: conversationActive }"
               @click="toggleRoleplay"
             >
               {{ conversationActive ? '■ 停止' : '▶ スタート' }}
-            </button>
-            <button
+            </UButton>
+            <UButton
+              :variant="isRecording ? 'solid' : 'outline'"
+              :color="isRecording ? 'error' : 'neutral'"
+              size="lg"
               class="cc-mic-button-new"
-              :class="{ active: isRecording }"
               @click="toggleMic"
             >
               <span class="cc-mic-icon">🎤</span>
               <span class="cc-mic-text">{{ isRecording ? '録音中...' : 'OFF' }}</span>
-            </button>
+            </UButton>
           </div>
         </div>
 
@@ -273,23 +295,24 @@
             <div class="cc-character-icon-box" @click="openCharacterSettings">
               👔
             </div>
-            <select v-model="selectedCharacter" class="cc-character-select">
-              <option value="businessman">ビジネスマン</option>
-              <option value="saleswoman">営業ウーマン</option>
-              <option value="manager">マネージャー</option>
-              <option value="customer">顧客</option>
-            </select>
+            <USelect
+              v-model="selectedCharacter"
+              :items="characterOptions"
+              size="sm"
+              class="cc-character-select"
+            />
           </div>
 
           <!-- 音声設定コンポーネント -->
           <div class="cc-voice-settings-component">
             <div class="cc-setting-row">
               <label class="cc-setting-label">音声タイプ:</label>
-              <select v-model="selectedVoice" class="cc-voice-select">
-                <option value="alloy">Alloy</option>
-                <option value="echo">Echo</option>
-                <option value="shimmer">Shimmer</option>
-              </select>
+              <USelect
+                v-model="selectedVoice"
+                :items="voiceOptions"
+                size="sm"
+                class="cc-voice-select"
+              />
             </div>
           </div>
         </div>
@@ -299,35 +322,50 @@
     <!-- 設計コンポーネント (Right Column Bottom) -->
     <div class="cc-panel cc-design-component" :class="{ expanded: playComponentCollapsed }">
       <!-- テストエリア開閉ボタン -->
-      <button class="cc-play-toggle-button" @click="togglePlayComponent">
+      <UButton
+        variant="ghost"
+        color="neutral"
+        size="sm"
+        class="cc-play-toggle-button"
+        @click="togglePlayComponent"
+      >
         <span class="cc-play-toggle-icon" :class="{ rotated: playComponentCollapsed }">▲</span>
         <span class="cc-play-toggle-text">
           {{ playComponentCollapsed ? 'テストエリアを開く' : 'テストエリアを閉じる' }}
         </span>
-      </button>
+      </UButton>
 
       <div class="cc-tabs">
-        <button
+        <UButton
+          variant="ghost"
+          color="neutral"
+          size="sm"
           class="cc-tab"
           :class="{ active: designTab === 'diagram' }"
           @click="designTab = 'diagram'"
         >
           ロープレ設計
-        </button>
-        <button
+        </UButton>
+        <UButton
+          variant="ghost"
+          color="neutral"
+          size="sm"
           class="cc-tab"
           :class="{ active: designTab === 'script' }"
           @click="designTab = 'script'"
         >
           会話の流れ
-        </button>
-        <button
+        </UButton>
+        <UButton
+          variant="ghost"
+          color="neutral"
+          size="sm"
           class="cc-tab"
           :class="{ active: designTab === 'config' }"
           @click="designTab = 'config'"
         >
           設計書
-        </button>
+        </UButton>
       </div>
 
       <!-- ロープレ設計コンポーネント (Tab 1) -->
@@ -349,7 +387,7 @@
             <div class="cc-script-card-header" @click="script.expanded = !script.expanded">
               <span class="cc-script-expand-icon">{{ script.expanded ? '▼' : '▶' }}</span>
               <span class="cc-script-card-title">{{ script.mode }}</span>
-              <button class="cc-script-edit-btn" @click.stop="editScript(index)">編集</button>
+              <UButton variant="ghost" color="neutral" size="xs" @click.stop="editScript(index)">編集</UButton>
             </div>
             <div v-show="script.expanded" class="cc-script-card-content">
               <pre class="cc-script-content">{{ script.content }}</pre>
@@ -360,26 +398,58 @@
 
       <!-- 設計書コンポーネント (Tab 3) -->
       <div v-show="designTab === 'config'" class="cc-tab-content active">
-        <div v-if="systemPrompts.length === 0" class="cc-config-content-wrapper">
-          <!-- デフォルトで4つのモードカードを表示 -->
-          <div class="cc-prompts-container">
-            <div v-for="mode in defaultModes" :key="mode" class="cc-prompt-card-editable">
-              <div class="cc-prompt-card-header">
-                <span class="cc-prompt-expand-icon">▶</span>
-                <span class="cc-prompt-card-title">{{ mode }}</span>
-              </div>
-            </div>
-          </div>
+        <!-- 生成ボタン -->
+        <div class="cc-generate-prompts-bar">
+          <UButton
+            color="primary"
+            size="sm"
+            :disabled="isGeneratingPrompts"
+            @click="generateAllPrompts"
+          >
+            {{ isGeneratingPrompts ? '生成中...' : 'プロンプト生成' }}
+          </UButton>
+          <span class="cc-generate-hint">各モードのシステムプロンプトを自動生成します</span>
         </div>
-        <div v-else class="cc-prompts-container">
-          <div v-for="(prompt, index) in systemPrompts" :key="index" class="cc-prompt-card-editable">
-            <div class="cc-prompt-card-header" @click="prompt.expanded = !prompt.expanded">
+
+        <div class="cc-prompts-container">
+          <div
+            v-for="(prompt, index) in systemPromptsDisplay"
+            :key="prompt.mode"
+            class="cc-prompt-card-editable"
+            :class="{ 'cc-generating': prompt.isGenerating }"
+          >
+            <div class="cc-prompt-card-header" @click="togglePromptExpand(index)">
               <span class="cc-prompt-expand-icon">{{ prompt.expanded ? '▼' : '▶' }}</span>
               <span class="cc-prompt-card-title">{{ prompt.mode }}</span>
-              <button class="cc-prompt-edit-btn" @click.stop="editPrompt(index)">編集</button>
+              <div class="cc-prompt-actions">
+                <UButton
+                  v-if="prompt.content"
+                  variant="ghost"
+                  color="neutral"
+                  size="xs"
+                  @click.stop="editPrompt(index)"
+                >
+                  編集
+                </UButton>
+                <UButton
+                  color="success"
+                  size="xs"
+                  :disabled="prompt.isGenerating"
+                  @click.stop="generateSinglePrompt(prompt.modeKey, index)"
+                >
+                  {{ prompt.isGenerating ? '...' : '生成' }}
+                </UButton>
+              </div>
             </div>
             <div v-show="prompt.expanded" class="cc-prompt-card-content">
-              <pre class="cc-prompt-content-text">{{ prompt.content }}</pre>
+              <div v-if="prompt.isGenerating" class="cc-prompt-loading">
+                <span class="cc-loading-spinner"></span>
+                <span>プロンプトを生成中...</span>
+              </div>
+              <pre v-else-if="prompt.content" class="cc-prompt-content-text">{{ prompt.content }}</pre>
+              <div v-else class="cc-prompt-empty">
+                <span>まだ生成されていません</span>
+              </div>
             </div>
           </div>
         </div>
@@ -406,10 +476,27 @@
 
 <script setup lang="ts">
 import type { FileData } from '~/types/roleplay'
+import type { RealtimeConfig } from '~/composables/useRealtimeAPI'
 
 definePageMeta({
   layout: 'default'
 })
+
+// Use the Realtime API composable
+const {
+  isConnected,
+  isPlaying,
+  isRecording: realtimeIsRecording,
+  isSpeaking,
+  connectionStatus,
+  toggleRoleplay: realtimeToggleRoleplay,
+  toggleRecording,
+  startRoleplay,
+  stopRoleplay,
+  onTranscript,
+  onAIResponse,
+  onError
+} = useRealtimeAPI()
 
 // State
 const selectedCategory = ref('sales-basics')
@@ -417,24 +504,70 @@ const operationTab = ref('chat')
 const selectedLesson = ref('')
 const selectedMode = ref('confirmation')
 const selectedCharacter = ref('businessman')
-const selectedVoice = ref('alloy')
+const selectedVoice = ref<'alloy' | 'echo' | 'shimmer' | 'ash' | 'ballad' | 'coral' | 'sage' | 'verse'>('alloy')
 const designTab = ref('diagram')
 const playComponentCollapsed = ref(false)
 
-// Roleplay state
-const conversationActive = ref(false)
-const isRecording = ref(false)
+// Select options for USelect components
+const categoryOptions = [
+  { label: '営業基礎', value: 'sales-basics' },
+  { label: 'カスタマーサービス', value: 'customer-service' },
+  { label: 'プレゼンテーション', value: 'presentation' },
+  { label: '交渉術', value: 'negotiation' },
+  { label: 'リーダーシップ', value: 'leadership' }
+]
+
+const fileTypeOptions = [
+  { label: '未分類', value: '未分類' },
+  { label: '見本データ', value: '見本データ' },
+  { label: '教材データ', value: '教材データ' },
+  { label: '自社データ', value: '自社データ' },
+  { label: '顧客データ', value: '顧客データ' },
+  { label: 'その他', value: 'その他' }
+]
+
+const lessonOptions = [
+  { label: 'Lv.1: 飛び込み学習モード', value: 'lv1-1' },
+  { label: 'Lv.1: 話すことまとめ', value: 'lv1-2' },
+  { label: 'Lv.2: 相手に寄り添うトーク', value: 'lv2-1' },
+  { label: 'Lv.2: 言葉の選び方', value: 'lv2-2' }
+]
+
+const characterOptions = [
+  { label: 'ビジネスマン', value: 'businessman' },
+  { label: '営業ウーマン', value: 'saleswoman' },
+  { label: 'マネージャー', value: 'manager' },
+  { label: '顧客', value: 'customer' }
+]
+
+const voiceOptions = [
+  { label: 'Alloy', value: 'alloy' },
+  { label: 'Echo', value: 'echo' },
+  { label: 'Shimmer', value: 'shimmer' }
+]
+
+// Roleplay state - now linked to Realtime API
+const conversationActive = computed(() => isPlaying.value)
+const isRecording = computed(() => realtimeIsRecording.value)
 const showResult = ref(false)
 const score = ref(85)
 const feedbackHtml = ref('')
 
-// Connection status
+// Custom character animation webm files
+const customListeningVideo = ref<string | null>(null)
+const customSpeakingVideo = ref<string | null>(null)
+
+// Video element ref
+const characterVideoRef = ref<HTMLVideoElement | null>(null)
+
+// Connection status - now from Realtime API
 const connectionStatusClass = computed(() => {
-  return conversationActive.value ? 'cc-status-connected' : 'cc-status-disconnected'
+  if (isConnected.value) {
+    return isSpeaking.value ? 'cc-status-speaking' : 'cc-status-connected'
+  }
+  return 'cc-status-disconnected'
 })
-const connectionStatusText = computed(() => {
-  return conversationActive.value ? '接続中' : '未接続'
-})
+const connectionStatusText = computed(() => connectionStatus.value)
 
 // Data
 const uploadedFiles = ref<FileData[]>([])
@@ -442,6 +575,34 @@ const scripts = ref<Array<{ mode: string; content: string; expanded: boolean }>>
 const systemPrompts = ref<Array<{ mode: string; content: string; expanded: boolean }>>([])
 const selectedFileIndex = ref<number | null>(null)
 const defaultModes = ['台本モード', 'お手本モード', '確認モード', '実戦モード']
+const isGeneratingPrompts = ref(false)
+
+// Mode mapping for API calls
+const modeKeyMap: Record<string, string> = {
+  '台本モード': 'subtitle',
+  'お手本モード': 'ai-demo',
+  '確認モード': 'confirmation',
+  '実戦モード': 'practice'
+}
+
+// System prompts display with generation state
+interface SystemPromptDisplay {
+  mode: string
+  modeKey: string
+  content: string
+  expanded: boolean
+  isGenerating: boolean
+}
+
+const systemPromptsDisplay = ref<SystemPromptDisplay[]>(
+  defaultModes.map(mode => ({
+    mode,
+    modeKey: modeKeyMap[mode] || 'practice',
+    content: '',
+    expanded: false,
+    isGenerating: false
+  }))
+)
 
 // コースツリー構造
 interface CourseLesson {
@@ -519,17 +680,56 @@ const togglePlayComponent = () => {
   playComponentCollapsed.value = !playComponentCollapsed.value
 }
 
-const toggleRoleplay = () => {
-  conversationActive.value = !conversationActive.value
-  if (!conversationActive.value) {
-    isRecording.value = false
+// Toggle roleplay - now uses Realtime API
+const toggleRoleplay = async () => {
+  const config: RealtimeConfig = {
+    voice: selectedVoice.value,
+    instructions: getInstructionsForMode(selectedMode.value)
+  }
+  await realtimeToggleRoleplay(config)
+}
+
+// Get instructions based on selected mode
+const getInstructionsForMode = (mode: string): string => {
+  const modeInstructions: Record<string, string> = {
+    'subtitle': 'あなたはロールプレイの台本読み上げアシスタントです。台本に沿って話してください。',
+    'ai-demo': 'あなたはお手本を見せるアシスタントです。理想的な対応を実演してください。',
+    'confirmation': 'あなたは確認モードのアシスタントです。ユーザーの理解度を確認しながら進めてください。',
+    'practice': 'あなたは実戦モードの練習相手です。リアルな顧客として振る舞い、ユーザーの対応を評価してください。'
+  }
+  return modeInstructions[mode] || modeInstructions['practice']
+}
+
+// Toggle microphone - now uses Realtime API
+const toggleMic = () => {
+  if (isConnected.value) {
+    toggleRecording()
   }
 }
 
-const toggleMic = () => {
-  if (conversationActive.value) {
-    isRecording.value = !isRecording.value
+// Watch for speaking state changes to control video animation
+watch(isSpeaking, (speaking) => {
+  updateCharacterAnimation(speaking)
+})
+
+// Update character animation based on speaking state
+const updateCharacterAnimation = (speaking: boolean) => {
+  const video = characterVideoRef.value || document.getElementById('characterVideo') as HTMLVideoElement
+  if (!video) return
+
+  if (speaking && customSpeakingVideo.value) {
+    video.src = customSpeakingVideo.value
+    video.play()
+  } else if (!speaking && customListeningVideo.value) {
+    video.src = customListeningVideo.value
+    video.play()
   }
+}
+
+// Set custom animation videos
+const setCustomAnimations = (listening: string | null, speaking: string | null) => {
+  customListeningVideo.value = listening
+  customSpeakingVideo.value = speaking
 }
 
 const openCharacterSettings = () => {
@@ -543,11 +743,22 @@ interface CharacterSettings {
   tone: string
   responseStyle: string
   difficulty: string
+  customListeningVideo?: string | null
+  customSpeakingVideo?: string | null
 }
 
 const applyCharacterSettings = (settings: CharacterSettings) => {
   selectedCharacter.value = settings.character
-  selectedVoice.value = settings.voice
+  selectedVoice.value = settings.voice as typeof selectedVoice.value
+
+  // Apply custom animation videos if provided
+  if (settings.customListeningVideo !== undefined) {
+    customListeningVideo.value = settings.customListeningVideo
+  }
+  if (settings.customSpeakingVideo !== undefined) {
+    customSpeakingVideo.value = settings.customSpeakingVideo
+  }
+
   showCharacterSettingsPopup.value = false
 }
 
@@ -588,6 +799,56 @@ const selectLesson = (catIndex: number, lessonIndex: number, lesson: CourseLesso
 const editScript = (index: number) => {
   // TODO: スクリプト編集処理
   console.log('Edit script', index)
+}
+
+// Toggle prompt card expansion
+const togglePromptExpand = (index: number) => {
+  systemPromptsDisplay.value[index].expanded = !systemPromptsDisplay.value[index].expanded
+}
+
+// Generate a single prompt
+const generateSinglePrompt = async (modeKey: string, index: number) => {
+  if (systemPromptsDisplay.value[index].isGenerating) return
+
+  systemPromptsDisplay.value[index].isGenerating = true
+  systemPromptsDisplay.value[index].expanded = true
+
+  try {
+    const response = await $fetch<{ mode: string; systemPrompt: string }>('/api/generate-prompt', {
+      method: 'POST',
+      body: {
+        mode: modeKey,
+        roleplayDesign: roleplayDesignForm.value?.getDesign?.() || null,
+        files: uploadedFiles.value.map(f => ({
+          name: f.name,
+          content: f.extractedText,
+          summary: f.summary
+        }))
+      }
+    })
+
+    systemPromptsDisplay.value[index].content = response.systemPrompt
+  } catch (error) {
+    console.error('Error generating prompt:', error)
+    systemPromptsDisplay.value[index].content = 'プロンプトの生成に失敗しました。APIキーを確認してください。'
+  } finally {
+    systemPromptsDisplay.value[index].isGenerating = false
+  }
+}
+
+// Generate all prompts
+const generateAllPrompts = async () => {
+  if (isGeneratingPrompts.value) return
+
+  isGeneratingPrompts.value = true
+
+  // Generate all prompts in parallel
+  const promises = systemPromptsDisplay.value.map((prompt, index) =>
+    generateSinglePrompt(prompt.modeKey, index)
+  )
+
+  await Promise.all(promises)
+  isGeneratingPrompts.value = false
 }
 
 const editPrompt = (index: number) => {
@@ -760,33 +1021,7 @@ const handleDrop = (event: DragEvent) => {
 }
 
 .cc-file-type-select {
-  padding: 4px 8px;
-  font-size: 12px;
-  border: 1px solid #e5e7eb;
-  border-radius: 4px;
-  background: white;
-  color: #374151;
-  cursor: pointer;
   min-width: 100px;
-}
-
-.cc-file-type-select:focus {
-  outline: none;
-  border-color: #3b82f6;
-}
-
-.cc-file-download-btn {
-  padding: 6px 8px;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  font-size: 16px;
-  border-radius: 4px;
-  transition: background 0.2s;
-}
-
-.cc-file-download-btn:hover {
-  background: #f3f4f6;
 }
 
 .cc-file-extracted-text {
@@ -920,5 +1155,117 @@ const handleDrop = (event: DragEvent) => {
   display: flex;
   flex-direction: column;
   height: 100%;
+}
+
+/* Speaking/Listening animation styles */
+.cc-character-window.cc-speaking {
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+  animation: pulse-speaking 1s ease-in-out infinite;
+}
+
+.cc-character-window.cc-listening {
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+}
+
+.cc-character.cc-character-speaking {
+  animation: bounce-speaking 0.5s ease-in-out infinite;
+}
+
+@keyframes pulse-speaking {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(59, 130, 246, 0.8);
+  }
+}
+
+@keyframes bounce-speaking {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+/* Connection status colors */
+.cc-status-indicator.cc-status-speaking {
+  background-color: #3b82f6;
+  animation: pulse-dot 1s ease-in-out infinite;
+}
+
+.cc-status-indicator.cc-status-connected {
+  background-color: #10b981;
+}
+
+.cc-status-indicator.cc-status-disconnected {
+  background-color: #6b7280;
+}
+
+@keyframes pulse-dot {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Prompt generation styles */
+.cc-generate-prompts-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 12px;
+}
+
+.cc-generate-hint {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.cc-prompt-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.cc-prompt-card-editable.cc-generating {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.cc-prompt-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px;
+  color: #6b7280;
+}
+
+.cc-loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #e5e7eb;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.cc-prompt-empty {
+  padding: 20px;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 13px;
 }
 </style>

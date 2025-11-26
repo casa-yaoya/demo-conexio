@@ -41,14 +41,17 @@
 
         <!-- サジェスションボタン -->
         <div v-if="suggestions.length > 0" class="cc-chat-suggestions">
-          <button
+          <UButton
             v-for="(suggestion, index) in suggestions"
             :key="index"
-            class="cc-chat-suggestion-btn"
+            variant="outline"
+            color="neutral"
+            block
+            class="justify-start"
             @click="handleSuggestionClick(suggestion)"
           >
             {{ suggestion.label }}
-          </button>
+          </UButton>
         </div>
       </div>
 
@@ -62,17 +65,30 @@
           rows="1"
         ></textarea>
         <div class="cc-button-group">
-          <button class="cc-button cc-button-secondary" @click="attachFile">
-            📎 ファイルを添付
-          </button>
-          <button class="cc-button cc-button-primary" @click="sendMessage">
+          <UButton
+            variant="outline"
+            color="neutral"
+            icon="i-lucide-paperclip"
+            @click="attachFile"
+          >
+            ファイルを添付
+          </UButton>
+          <UButton
+            color="primary"
+            icon="i-lucide-send"
+            @click="sendMessage"
+          >
             送信
-          </button>
+          </UButton>
         </div>
         <div class="cc-roleplay-generate-wrapper">
-          <button class="cc-button cc-button-generate" @click="openFileSelectionDialog">
+          <UButton
+            color="secondary"
+            variant="soft"
+            @click="openFileSelectionDialog"
+          >
             🎭 ロープレ生成
-          </button>
+          </UButton>
         </div>
       </div>
     </div>
@@ -405,6 +421,8 @@ defineExpose({ messages, handleDroppedFile })
   justify-content: center;
   font-size: 20px;
   flex-shrink: 0;
+  overflow: hidden;
+  position: relative;
 }
 
 .cc-message.user .cc-message-avatar {

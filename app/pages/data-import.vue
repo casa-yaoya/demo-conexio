@@ -1,7 +1,9 @@
 <template>
   <div class="p-5">
-    <div class="card">
-      <h2 class="text-lg font-semibold text-gray-800 mb-4">データ読込</h2>
+    <UCard>
+      <template #header>
+        <h2 class="text-lg font-semibold text-gray-800">データ読込</h2>
+      </template>
 
       <!-- Current Data Info -->
       <div class="data-info-grid mb-6">
@@ -33,12 +35,20 @@
           @change="handleCSVFileChange"
         >
         <div class="flex gap-3 justify-center flex-wrap">
-          <button class="button-primary" @click="selectCSVFile">
+          <UButton
+            color="primary"
+            icon="i-lucide-file-up"
+            @click="selectCSVFile"
+          >
             CSVファイルを選択
-          </button>
-          <button class="button-success" @click="loadDemoDataManually">
+          </UButton>
+          <UButton
+            color="success"
+            icon="i-lucide-database"
+            @click="loadDemoDataManually"
+          >
             デモデータを読み込む
-          </button>
+          </UButton>
         </div>
         <div class="upload-hint">
           フォーマット: 日付,Org,Account,Group,Player,カテゴリ,レベル,レッスン,スコア,発話時間,プレイ時間
@@ -77,7 +87,7 @@
           </table>
         </div>
       </div>
-    </div>
+    </UCard>
   </div>
 </template>
 
@@ -207,35 +217,5 @@ onMounted(() => {
 
 .upload-status.success {
   color: #059669;
-}
-
-.button-primary {
-  padding: 10px 20px;
-  background: #3b82f6;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: background 0.2s;
-}
-
-.button-primary:hover {
-  background: #2563eb;
-}
-
-.button-success {
-  padding: 10px 20px;
-  background: #10b981;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: background 0.2s;
-}
-
-.button-success:hover {
-  background: #059669;
 }
 </style>
