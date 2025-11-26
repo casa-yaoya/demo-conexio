@@ -559,11 +559,6 @@ watch(summaryDisplayUnit, updateSummaryData)
 
 // 初期化
 onMounted(async () => {
-  // スマホの場合はデフォルトでフィルターを閉じる
-  if (window.innerWidth <= 768) {
-    isFilterCollapsed.value = true
-  }
-
   // データが読み込まれていない場合はデモデータを自動読み込み
   if (!isDataLoaded.value) {
     try {

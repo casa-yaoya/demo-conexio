@@ -215,6 +215,7 @@ const props = defineProps<{
     accountGroups: Record<string, string[]>
     groupPlayers: Record<string, string[]>
   }
+  initialOpen?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -228,8 +229,8 @@ const emit = defineEmits<{
   (e: 'update:collapsed', collapsed: boolean): void
 }>()
 
-// フィルターパネル全体の開閉状態
-const isFilterPanelOpen = ref(true)
+// フィルターパネル全体の開閉状態（デフォルトは開いた状態）
+const isFilterPanelOpen = ref(props.initialOpen !== false)
 
 // スマホ判定
 const isMobile = ref(false)
@@ -243,6 +244,15 @@ onMounted(() => {
   onUnmounted(() => {
     window.removeEventListener('resize', checkMobile)
   })
+  // 初期状態を親に通知
+  emit('update:collapsed', !isFilterPanelOpen.value)
+})
+
+// initialOpenプロパティの変更を監視
+watch(() => props.initialOpen, (newVal: boolean | undefined) => {
+  if (newVal !== undefined) {
+    isFilterPanelOpen.value = newVal
+  }
 })
 
 const toggleFilterPanel = () => {
@@ -702,6 +712,27 @@ defineExpose({
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(-4px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* スマホでの上方向折りたたみアニメーション */
+@media (max-width: 768px) {
+  .data-filter.mobile-collapsed .filter-body {
+    animation: slideUp 0.15s ease forwards;
+  }
+
+  .data-filter:not(.mobile-collapsed) .filter-body {
+    animation: slideDown 0.15s ease forwards;
+  }
+
+  @keyframes slideUp {
+    from { opacity: 1; max-height: 1000px; transform: translateY(0); }
+    to { opacity: 0; max-height: 0; transform: translateY(-10px); }
+  }
+
+  @keyframes slideDown {
+    from { opacity: 0; max-height: 0; transform: translateY(-10px); }
+    to { opacity: 1; max-height: 1000px; transform: translateY(0); }
+  }
 }
 
 /* フィルターセクション */
