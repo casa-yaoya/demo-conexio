@@ -10,15 +10,27 @@ interface AnalysisResult {
   error?: string
 }
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-})
+// Lazy initialize clients to avoid startup errors when API keys are not set
+let openaiClient: OpenAI | null = null
+let anthropicClient: Anthropic | null = null
 
-// Initialize Anthropic client
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY
-})
+function getOpenAI(): OpenAI {
+  if (!openaiClient) {
+    openaiClient = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY || ''
+    })
+  }
+  return openaiClient
+}
+
+function getAnthropic(): Anthropic {
+  if (!anthropicClient) {
+    anthropicClient = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY || ''
+    })
+  }
+  return anthropicClient
+}
 
 export default defineEventHandler(async (event): Promise<AnalysisResult> => {
   console.log('🔍 Analyze API called')
@@ -85,7 +97,7 @@ async function analyzePDF(buffer: Buffer, filename: string): Promise<AnalysisRes
     const base64PDF = buffer.toString('base64')
 
     // Use OpenAI to analyze the PDF
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: 'gpt-4o',
       messages: [
         {
@@ -144,7 +156,7 @@ async function analyzeAudio(buffer: Buffer, filename: string): Promise<AnalysisR
     const base64Audio = buffer.toString('base64')
     const mimeType = getMimeType(filename)
 
-    const response = await anthropic.messages.create({
+    const response = await getAnthropic().messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 16000,
       messages: [
@@ -204,7 +216,7 @@ async function analyzeVideo(buffer: Buffer, filename: string): Promise<AnalysisR
     const file = new File([buffer], filename, { type: mimeType })
 
     // Send to Whisper API for transcription
-    const transcription = await openai.audio.transcriptions.create({
+    const transcription = await getOpenAI().audio.transcriptions.create({
       file: file,
       model: 'whisper-1',
       language: 'ja'
@@ -224,7 +236,7 @@ async function analyzeVideo(buffer: Buffer, filename: string): Promise<AnalysisR
       const base64Video = buffer.toString('base64')
       const mimeType = getMimeType(filename)
 
-      const response = await anthropic.messages.create({
+      const response = await getAnthropic().messages.create({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 16000,
         messages: [

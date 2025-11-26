@@ -10,12 +10,6 @@
     class="app-sidebar"
     :class="{ 'open': isSidebarOpen }"
   >
-    <!-- ロゴエリア -->
-    <div class="sidebar-header">
-      <NaretoreTextLogo class="sidebar-logo" />
-      <span class="sidebar-title">管理者ページ</span>
-    </div>
-
     <!-- ナビゲーション -->
     <nav class="sidebar-nav">
       <div class="nav-section">
@@ -63,7 +57,7 @@ const navigationItems = [
 
 const switchView = (item: typeof navigationItems[0]) => {
   router.push(item.path)
-  // モバイル時はサイドバーを閉じる
+  // サイドバーを閉じる
   isSidebarOpen.value = false
 }
 
@@ -90,7 +84,6 @@ const handleLogout = () => {
   bottom: 0;
   background: rgba(15, 23, 42, 0.5);
   z-index: 99;
-  display: none;
   backdrop-filter: blur(2px);
 }
 
@@ -99,32 +92,20 @@ const handleLogout = () => {
   background: white;
   border-right: 1px solid #e2e8f0;
   height: 100vh;
-  position: sticky;
+  position: fixed;
+  left: 0;
   top: 0;
   display: flex;
   flex-direction: column;
-  z-index: 50;
+  z-index: 100;
   flex-shrink: 0;
+  transform: translateX(-100%);
+  transition: transform 0.3s ease;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.1);
 }
 
-/* サイドバーヘッダー */
-.sidebar-header {
-  padding: 20px;
-  border-bottom: 1px solid #e2e8f0;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.sidebar-logo {
-  height: 28px;
-  width: auto;
-}
-
-.sidebar-title {
-  font-size: 13px;
-  font-weight: 500;
-  color: #64748b;
+.app-sidebar.open {
+  transform: translateX(0);
 }
 
 /* ナビゲーション */
@@ -221,28 +202,6 @@ const handleLogout = () => {
 .logout-item:hover {
   background: #fff1f2;
   color: #e11d48;
-}
-
-/* モバイル対応 */
-@media (max-width: 1024px) {
-  .sidebar-overlay {
-    display: block;
-  }
-
-  .app-sidebar {
-    position: fixed;
-    left: 0;
-    top: 0;
-    height: 100vh;
-    transform: translateX(-100%);
-    transition: transform 0.3s ease;
-    z-index: 100;
-    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.1);
-  }
-
-  .app-sidebar.open {
-    transform: translateX(0);
-  }
 }
 
 /* スクロールバー */

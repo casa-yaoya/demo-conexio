@@ -24,6 +24,7 @@
 <style scoped>
 .app-layout {
   display: flex;
+  flex-direction: column;
   min-height: 100vh;
   background-color: #f8fafc;
 }
@@ -41,12 +42,5 @@
   z-index: 0;
   isolation: isolate;
   background: #f8fafc;
-}
-
-/* タブレット以下でサイドバーを隠す */
-@media (max-width: 1024px) {
-  .app-layout {
-    flex-direction: column;
-  }
 }
 </style>

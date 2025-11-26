@@ -1,13 +1,18 @@
 <template>
   <div class="data-filter" :class="{ collapsed: !isFilterPanelOpen }">
-    <!-- フィルターヘッダー -->
-    <div class="filter-header" @click="toggleFilterPanel">
+    <!-- フィルターヘッダー（開いている時） -->
+    <div v-if="isFilterPanelOpen" class="filter-header" @click="toggleFilterPanel">
       <UIcon name="i-lucide-filter" class="filter-header-icon" />
       <h2 class="filter-title">フィルター</h2>
       <UIcon
-        :name="isFilterPanelOpen ? 'i-lucide-chevron-left' : 'i-lucide-chevron-right'"
+        name="i-lucide-chevron-left"
         class="filter-toggle-icon"
       />
+    </div>
+    <!-- 折りたたみ時のアイコン表示 -->
+    <div v-else class="filter-collapsed-header" @click="toggleFilterPanel">
+      <UIcon name="i-lucide-filter" class="filter-collapsed-icon" />
+      <UIcon name="i-lucide-chevron-right" class="filter-collapsed-arrow" />
     </div>
 
     <div v-show="isFilterPanelOpen" class="filter-body">
@@ -103,8 +108,8 @@
           <span class="filter-section-title">レベルで絞り込み</span>
         </div>
         <div v-show="expandedSections.level" class="filter-section-content">
-          <div class="level-filter-options">
-            <label v-for="level in availableLevels" :key="level" class="level-filter-item">
+          <div class="level-filter-options-vertical">
+            <label v-for="level in availableLevels" :key="level" class="level-filter-item-vertical">
               <UCheckbox
                 :model-value="selectedFilterLevels.has(level)"
                 @update:model-value="toggleFilterLevel(level)"
@@ -613,13 +618,37 @@ defineExpose({
 }
 
 /* 折りたたみ時のスタイル */
-.data-filter.collapsed .filter-header {
-  margin-bottom: 0;
+.data-filter.collapsed {
+  width: 100%;
 }
 
-.data-filter.collapsed .filter-title,
-.data-filter.collapsed .filter-toggle-icon {
-  display: none;
+.filter-collapsed-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px 8px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid #e2e8f0;
+}
+
+.filter-collapsed-header:hover {
+  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+  border-color: #0ea5e9;
+}
+
+.filter-collapsed-icon {
+  font-size: 22px;
+  color: #0ea5e9;
+}
+
+.filter-collapsed-arrow {
+  font-size: 16px;
+  color: #64748b;
 }
 
 .filter-body {
@@ -826,26 +855,26 @@ defineExpose({
   color: #475569;
 }
 
-/* レベルフィルター */
-.level-filter-options {
+/* レベルフィルター（縦1列） */
+.level-filter-options-vertical {
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.level-filter-item {
+.level-filter-item-vertical {
   display: flex;
   align-items: center;
-  padding: 8px 14px;
+  padding: 10px 14px;
   background: #f8fafc;
   border-radius: 8px;
-  gap: 8px;
+  gap: 10px;
   cursor: pointer;
   transition: all 0.2s;
   border: 1px solid #e2e8f0;
 }
 
-.level-filter-item:hover {
+.level-filter-item-vertical:hover {
   border-color: #0ea5e9;
   background: #f0f9ff;
 }

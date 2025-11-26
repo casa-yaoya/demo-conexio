@@ -6,7 +6,7 @@ export function getOpenAIClient() {
   if (!openaiClient) {
     const config = useRuntimeConfig()
     openaiClient = new OpenAI({
-      apiKey: config.openaiApiKey
+      apiKey: config.openaiApiKey || ''
     })
   }
   return openaiClient

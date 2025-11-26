@@ -1,19 +1,25 @@
 <template>
   <header class="app-header">
-    <!-- モバイル時のみハンバーガーメニュー -->
-    <UButton
-      icon="i-lucide-menu"
-      variant="ghost"
-      color="neutral"
-      size="md"
-      class="mobile-menu-btn"
-      @click="toggleSidebar"
-      aria-label="メニュー"
-    />
+    <!-- 左側: ハンバーガーメニュー -->
+    <div class="header-left">
+      <UButton
+        icon="i-lucide-menu"
+        variant="ghost"
+        color="neutral"
+        size="md"
+        class="menu-btn"
+        @click="toggleSidebar"
+        aria-label="メニュー"
+      />
+    </div>
 
-    <!-- ページタイトル -->
-    <div class="header-title">
-      <h1 class="page-title">{{ currentPageTitle }}</h1>
+    <!-- 中央: ロゴとタイトル -->
+    <div class="header-center">
+      <div class="logo-container">
+        <NaretoreLogo />
+      </div>
+      <NaretoreTextLogo class="text-logo" />
+      <span class="admin-label">管理者ページ</span>
     </div>
 
     <!-- 右側のユーザーメニュー -->
@@ -37,25 +43,11 @@
 </template>
 
 <script setup lang="ts">
-const route = useRoute()
 const isSidebarOpen = useState<boolean>('isSidebarOpen', () => false)
 
 const toggleSidebar = () => {
   isSidebarOpen.value = !isSidebarOpen.value
 }
-
-// 現在のページタイトルを取得
-const currentPageTitle = computed(() => {
-  const path = route.path
-  const titles: Record<string, string> = {
-    '/summary': 'サマリー',
-    '/ranking': '個人レコード',
-    '/logs': 'ログ',
-    '/content-creation': 'ロープレ構築',
-    '/data-import': 'データインポート'
-  }
-  return titles[path] || 'ダッシュボード'
-})
 </script>
 
 <style scoped>
@@ -65,31 +57,52 @@ const currentPageTitle = computed(() => {
   border-bottom: 1px solid #e2e8f0;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 0 24px;
   position: sticky;
   top: 0;
   z-index: 40;
-  gap: 16px;
 }
 
-.mobile-menu-btn {
-  display: none;
-}
-
-.header-title {
+.header-left {
   flex: 1;
+  display: flex;
+  align-items: center;
 }
 
-.page-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #1e293b;
-  margin: 0;
+.menu-btn {
+  display: flex;
+}
+
+.header-center {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo-container {
+  width: 36px;
+  height: 36px;
+}
+
+.text-logo {
+  height: 24px;
+  width: auto;
+}
+
+.admin-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #64748b;
+  padding-left: 12px;
+  border-left: 1px solid #e2e8f0;
 }
 
 .header-right {
+  flex: 1;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 12px;
 }
 
@@ -135,12 +148,25 @@ const currentPageTitle = computed(() => {
 
 /* モバイル対応 */
 @media (max-width: 1024px) {
-  .mobile-menu-btn {
-    display: flex;
-  }
-
   .app-header {
     padding: 0 16px;
+  }
+
+  .header-center {
+    gap: 8px;
+  }
+
+  .logo-container {
+    width: 28px;
+    height: 28px;
+  }
+
+  .text-logo {
+    height: 18px;
+  }
+
+  .admin-label {
+    display: none;
   }
 
   .user-info {

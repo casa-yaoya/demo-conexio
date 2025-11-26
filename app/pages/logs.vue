@@ -41,7 +41,7 @@
                 icon="i-lucide-download"
                 @click="downloadCSV"
               >
-                ダウンロード
+                CSVダウンロード
               </UButton>
               <UPopover>
                 <UButton

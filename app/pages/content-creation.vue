@@ -17,15 +17,14 @@
       </div>
       <!-- カテゴリー選択 -->
       <div class="cc-category-selector">
-        <div class="cc-category-select-wrapper">
-          <label class="cc-category-label">コース:</label>
-          <USelect
-            v-model="selectedCategory"
-            :items="categoryOptions"
-            size="sm"
-            class="cc-category-select"
-          />
-        </div>
+        <label class="cc-selector-label">コース:</label>
+        <USelect
+          v-model="selectedCategory"
+          :items="categoryOptions"
+          size="sm"
+          class="flex-1"
+          :ui="{ base: 'inline-flex items-center' }"
+        />
       </div>
 
       <!-- タブナビゲーション -->
@@ -149,7 +148,8 @@
                   v-model="file.dataType"
                   :items="fileTypeOptions"
                   size="xs"
-                  class="cc-file-type-select"
+                  class="min-w-[100px]"
+                  :ui="{ base: 'inline-flex items-center' }"
                   @click.stop
                 />
                 <UButton
@@ -178,13 +178,14 @@
       <!-- プレイエリアヘッダー -->
       <div class="cc-play-header">
         <div class="cc-lesson-selector">
-          <label class="cc-lesson-label">レッスン:</label>
+          <label class="cc-selector-label">レッスン:</label>
           <USelect
             v-model="selectedLesson"
             :items="lessonOptions"
             placeholder="レッスンを選択..."
             size="sm"
-            class="cc-lesson-dropdown"
+            class="flex-1"
+            :ui="{ base: 'inline-flex items-center' }"
           />
         </div>
       </div>
@@ -299,7 +300,8 @@
               v-model="selectedCharacter"
               :items="characterOptions"
               size="sm"
-              class="cc-character-select"
+              class="w-full"
+              :ui="{ base: 'inline-flex items-center' }"
             />
           </div>
 
@@ -311,7 +313,8 @@
                 v-model="selectedVoice"
                 :items="voiceOptions"
                 size="sm"
-                class="cc-voice-select"
+                class="w-full"
+                :ui="{ base: 'inline-flex items-center' }"
               />
             </div>
           </div>

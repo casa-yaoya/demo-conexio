@@ -68,9 +68,48 @@
 
         <!-- Chart -->
         <UCard class="chart-card mb-4">
-          <div class="chart-header">
-            <UIcon name="i-lucide-trending-up" class="chart-header-icon" />
-            トレンドチャート
+          <div class="chart-header-row">
+            <div class="chart-header">
+              <UIcon name="i-lucide-trending-up" class="chart-header-icon" />
+              トレンドチャート
+            </div>
+          </div>
+          <!-- チャート設定エリア -->
+          <div class="chart-settings">
+            <div class="chart-settings-left">
+              <!-- 表示内容チェックボックス -->
+              <div class="chart-visibility-toggles">
+                <label
+                  v-for="item in chartDisplayItems"
+                  :key="item.key"
+                  class="chart-toggle-item"
+                  :class="{ 'active': chartVisibility[item.key] }"
+                >
+                  <UCheckbox
+                    :model-value="chartVisibility[item.key]"
+                    @update:model-value="toggleChartVisibility(item.key)"
+                  />
+                  <span
+                    class="toggle-label"
+                    :style="{ color: chartVisibility[item.key] ? item.color : '#94a3b8' }"
+                  >{{ item.label }}</span>
+                </label>
+              </div>
+            </div>
+            <div class="chart-settings-right">
+              <!-- グラフ比較軸 -->
+              <div class="chart-setting-item">
+                <UIcon name="i-lucide-git-compare" class="setting-icon" />
+                <label class="chart-setting-label">比較軸:</label>
+                <USelect
+                  v-model="chartCompareAxis"
+                  :items="chartCompareAxisOptions"
+                  size="sm"
+                  class="min-w-[120px]"
+                  :ui="{ base: 'inline-flex items-center' }"
+                />
+              </div>
+            </div>
           </div>
           <TrendChart
             :labels="trendChartLabels"
@@ -96,16 +135,7 @@
                   :items="displayUnitOptions"
                   size="sm"
                   class="min-w-[120px]"
-                />
-              </div>
-              <div class="display-setting-item">
-                <UIcon name="i-lucide-git-compare" class="setting-icon" />
-                <label class="display-setting-label">グラフ比較軸:</label>
-                <USelect
-                  v-model="chartCompareAxis"
-                  :items="chartCompareAxisOptions"
-                  size="sm"
-                  class="min-w-[120px]"
+                  :ui="{ base: 'inline-flex items-center' }"
                 />
               </div>
             </div>
@@ -117,7 +147,7 @@
                 icon="i-lucide-download"
                 @click="downloadCSV"
               >
-                ダウンロード
+                CSVダウンロード
               </UButton>
               <UPopover>
                 <UButton
@@ -154,6 +184,7 @@
                   <th v-if="visibleColumns.level">Lv.</th>
                   <th v-if="visibleColumns.lesson">レッスン</th>
                   <th v-if="visibleColumns.playCount">プレイ数</th>
+                  <th v-if="visibleColumns.clearCount">クリア数</th>
                   <th v-if="visibleColumns.avgScore">平均</th>
                   <th v-if="visibleColumns.bestScore">ベスト</th>
                   <th v-if="visibleColumns.totalPlayTime">累計時間</th>
@@ -170,6 +201,7 @@
                   <td v-if="visibleColumns.level" class="whitespace-pre-line">{{ item.levelDisplay }}</td>
                   <td v-if="visibleColumns.lesson" class="whitespace-pre-line">{{ item.lessonDisplay }}</td>
                   <td v-if="visibleColumns.playCount">{{ item.playCount }}回</td>
+                  <td v-if="visibleColumns.clearCount">{{ item.clearCount || 0 }}回</td>
                   <td v-if="visibleColumns.avgScore">{{ item.avgScore }}点</td>
                   <td v-if="visibleColumns.bestScore">{{ item.bestScore }}点</td>
                   <td v-if="visibleColumns.totalPlayTime">{{ formatTime(item.totalPlayTime) }}</td>
@@ -236,6 +268,29 @@ const chartCompareAxisOptions = [
 // グラフの比較軸
 const chartCompareAxis = ref<'none' | 'account' | 'group' | 'player' | 'category' | 'level' | 'lesson'>('none')
 
+// チャート表示アイテムの定義
+const chartDisplayItems = [
+  { key: 'playCount', label: 'プレイ数', color: '#3b82f6' },
+  { key: 'clearCount', label: 'クリア数', color: '#10b981' },
+  { key: 'avgScore', label: '平均スコア', color: '#f97316' },
+  { key: 'bestScore', label: 'ベストスコア', color: '#ef4444' },
+  { key: 'uniquePlayer', label: 'ユニーク人数', color: '#8b5cf6' }
+]
+
+// チャート表示状態
+const chartVisibility = reactive<Record<string, boolean>>({
+  playCount: true,
+  clearCount: true,
+  avgScore: true,
+  bestScore: true,
+  uniquePlayer: true
+})
+
+// チャート表示切り替え
+const toggleChartVisibility = (key: string) => {
+  chartVisibility[key] = !chartVisibility[key]
+}
+
 // フィルター折りたたみ状態
 const isFilterCollapsed = ref(false)
 
@@ -249,6 +304,7 @@ const columnDefinitions = [
   { key: 'level', label: 'Lv.' },
   { key: 'lesson', label: 'レッスン' },
   { key: 'playCount', label: 'プレイ数' },
+  { key: 'clearCount', label: 'クリア数' },
   { key: 'avgScore', label: '平均' },
   { key: 'bestScore', label: 'ベスト' },
   { key: 'totalPlayTime', label: '累計時間' },
@@ -262,6 +318,7 @@ const visibleColumns = reactive<Record<string, boolean>>({
   level: true,
   lesson: true,
   playCount: true,
+  clearCount: true,
   avgScore: true,
   bestScore: true,
   totalPlayTime: true,
@@ -293,6 +350,7 @@ const downloadCSV = () => {
         if (col.key === 'level') return item.levelDisplay
         if (col.key === 'lesson') return item.lessonDisplay
         if (col.key === 'playCount') return item.playCount
+        if (col.key === 'clearCount') return item.clearCount || 0
         if (col.key === 'avgScore') return item.avgScore
         if (col.key === 'bestScore') return item.bestScore
         if (col.key === 'totalPlayTime') return formatTime(item.totalPlayTime)
@@ -431,9 +489,10 @@ const trendChartDatasets = computed(() => {
     uniquePlayerData: (number | null)[]
   }
 
-  return [
+  const allDatasets = [
     // 面グラフ - ユニークプレイ人数（一番奥）
     {
+      key: 'uniquePlayer',
       label: 'ユニークプレイ人数',
       data: trend.uniquePlayerData,
       type: 'area' as const,
@@ -444,6 +503,7 @@ const trendChartDatasets = computed(() => {
     },
     // 棒グラフ - クリア数（奥）
     {
+      key: 'clearCount',
       label: 'クリア数',
       data: trend.clearCountData,
       type: 'bar' as const,
@@ -454,6 +514,7 @@ const trendChartDatasets = computed(() => {
     },
     // 棒グラフ - プレイ数（手前に重ねる）
     {
+      key: 'playCount',
       label: 'プレイ数',
       data: trend.playCountData,
       type: 'bar' as const,
@@ -464,6 +525,7 @@ const trendChartDatasets = computed(() => {
     },
     // 折れ線グラフ - 平均スコア
     {
+      key: 'avgScore',
       label: '平均スコア',
       data: trend.avgScoreData,
       type: 'line' as const,
@@ -474,6 +536,7 @@ const trendChartDatasets = computed(() => {
     },
     // 折れ線グラフ - ベストスコア
     {
+      key: 'bestScore',
       label: 'ベストスコア',
       data: trend.bestScoreData,
       type: 'line' as const,
@@ -483,6 +546,9 @@ const trendChartDatasets = computed(() => {
       order: 0
     }
   ]
+
+  // chartVisibilityに基づいてフィルタリング
+  return allDatasets.filter(ds => chartVisibility[ds.key])
 })
 
 // サマリーデータの更新
@@ -634,6 +700,15 @@ onMounted(async () => {
   border-left: 4px solid #8b5cf6;
 }
 
+.chart-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
 .chart-header {
   display: flex;
   align-items: center;
@@ -641,14 +716,84 @@ onMounted(async () => {
   font-size: 16px;
   font-weight: 600;
   color: #1e293b;
-  margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #e2e8f0;
 }
 
 .chart-header-icon {
   font-size: 20px;
   color: #8b5cf6;
+}
+
+/* チャート設定エリア */
+.chart-settings {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.chart-settings-left {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chart-settings-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.chart-visibility-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chart-toggle-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 12px;
+}
+
+.chart-toggle-item:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.chart-toggle-item.active {
+  border-color: #94a3b8;
+  background: white;
+}
+
+.toggle-label {
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.chart-setting-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chart-setting-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+  white-space: nowrap;
 }
 
 /* ========================================
