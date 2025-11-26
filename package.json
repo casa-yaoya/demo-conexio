@@ -2,9 +2,6 @@
   "name": "naretore-nuxt",
   "type": "module",
   "private": true,
-  "overrides": {
-    "ignore": "5.2.0"
-  },
   "scripts": {
     "build": "nuxt build",
     "dev": "nuxt dev",
