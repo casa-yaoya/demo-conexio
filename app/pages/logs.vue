@@ -567,15 +567,70 @@ onMounted(async () => {
     flex-direction: column;
     gap: 12px;
     align-items: flex-start;
+    padding: 10px 12px;
   }
 
   .log-info {
     flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .page-size-label {
+    font-size: 12px;
+  }
+
+  .page-size-select {
+    min-width: 80px;
+  }
+
+  .page-info {
+    font-size: 11px;
+    padding: 4px 8px;
   }
 
   .table-actions {
     width: 100%;
     justify-content: flex-end;
+  }
+
+  .log-card-header {
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+  }
+
+  .log-title {
+    font-size: 14px;
+  }
+
+  .log-subtitle {
+    font-size: 11px;
+  }
+
+  .pagination {
+    gap: 8px;
+    padding-top: 12px;
+    margin-top: 12px;
+  }
+
+  .pagination-current {
+    padding: 3px 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .log-toolbar {
+    padding: 8px 10px;
+  }
+
+  .log-info {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .table-actions {
+    flex-wrap: wrap;
+    gap: 6px;
   }
 }
 </style>

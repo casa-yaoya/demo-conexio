@@ -1473,3 +1473,110 @@ body {
   flex-direction: column;
   overflow: hidden;
 }
+
+/* ==============================================
+   Mobile / Smartphone Responsive Styles
+   ============================================== */
+
+/* スマホ向け（768px以下） */
+@media (max-width: 768px) {
+  /* 全体のパディング調整 */
+  body {
+    font-size: 13px;
+  }
+
+  /* サマリーコンテナ - フィルターを非表示/折りたたみ */
+  .summary-container {
+    flex-direction: column;
+    height: auto;
+    min-height: calc(100vh - 64px);
+  }
+
+  .summary-filters {
+    width: 100%;
+    height: auto;
+    max-height: none;
+    border-right: none;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 0.75rem;
+  }
+
+  .summary-filters-sticky {
+    min-width: 0;
+  }
+
+  .summary-content {
+    height: auto;
+    min-height: 0;
+    padding: 0.75rem;
+  }
+
+  /* テーブルをスクロール可能に */
+  .data-table {
+    font-size: 11px;
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 8px 10px;
+  }
+
+  /* 統計カード */
+  .stats-card {
+    padding: 14px;
+  }
+
+  .stats-value {
+    font-size: 22px;
+  }
+
+  .stats-label {
+    font-size: 11px;
+  }
+
+  /* ページパディング調整 */
+  .p-5 {
+    padding: 12px !important;
+  }
+
+  /* UCard内のパディング調整 */
+  :deep(.u-card) {
+    padding: 12px;
+  }
+}
+
+/* 小さいスマホ向け（480px以下） */
+@media (max-width: 480px) {
+  body {
+    font-size: 12px;
+  }
+
+  .summary-filters {
+    padding: 0.5rem;
+  }
+
+  .summary-content {
+    padding: 0.5rem;
+  }
+
+  .data-table {
+    font-size: 10px;
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 6px 8px;
+  }
+
+  .stats-card {
+    padding: 12px;
+  }
+
+  .stats-value {
+    font-size: 18px;
+  }
+
+  .p-5 {
+    padding: 8px !important;
+  }
+}

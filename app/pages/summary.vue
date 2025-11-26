@@ -975,4 +975,57 @@ onMounted(async () => {
     width: 100%;
   }
 }
+
+/* スマホ向け（768px以下） */
+@media (max-width: 768px) {
+  .summary-toolbar {
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px 12px;
+  }
+
+  .unit-buttons {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .chart-header-row {
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .chart-header {
+    font-size: 14px;
+  }
+
+  .chart-settings-left {
+    width: 100%;
+  }
+
+  .chart-visibility-toggles {
+    width: 100%;
+  }
+
+  .chart-toggle-item {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+}
+
+/* 小さいスマホ（480px以下） */
+@media (max-width: 480px) {
+  .summary-toolbar {
+    padding: 8px 10px;
+  }
+
+  .chart-settings {
+    padding: 8px 10px;
+  }
+
+  .chart-toggle-item {
+    font-size: 10px;
+    padding: 3px 6px;
+  }
+}
 </style>

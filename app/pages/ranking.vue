@@ -542,11 +542,63 @@ onMounted(async () => {
     flex-direction: column;
     gap: 12px;
     align-items: flex-start;
+    padding: 10px 12px;
+  }
+
+  .ranking-info {
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .info-badge {
+    font-size: 11px;
+    padding: 4px 8px;
   }
 
   .table-actions {
     width: 100%;
     justify-content: flex-end;
+  }
+
+  .ranking-card-header {
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+  }
+
+  .ranking-title {
+    font-size: 14px;
+  }
+
+  .ranking-subtitle {
+    font-size: 11px;
+  }
+
+  .rank-cell {
+    font-size: 14px;
+    min-width: 30px;
+  }
+
+  .pagination {
+    gap: 8px;
+    padding-top: 12px;
+    margin-top: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .ranking-toolbar {
+    padding: 8px 10px;
+  }
+
+  .ranking-info {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .table-actions {
+    flex-wrap: wrap;
+    gap: 6px;
   }
 }
 </style>
