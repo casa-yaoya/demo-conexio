@@ -11,6 +11,6 @@ definePageMeta({
 const router = useRouter()
 
 onMounted(() => {
-  router.replace('/content-creation')
+  router.replace('/summary')
 })
 </script>
