@@ -121,12 +121,12 @@
                               />
                               <UIcon name="i-lucide-trophy" class="best-icon" />
                               <span class="best-label">ベスト</span>
-                              <span class="session-date">{{ formatDateTime(getBestSession(lesson)!.date) }}</span>
-                              <span class="session-player">{{ getBestSession(lesson)!.player }}</span>
                               <span class="session-score score-excellent">
                                 {{ getBestSession(lesson)!.score }}点
                               </span>
                               <span class="session-time">{{ getBestSession(lesson)!.playTime }}秒</span>
+                              <span class="session-date">{{ formatDateTime(getBestSession(lesson)!.date) }}</span>
+                              <span class="session-player">{{ getBestSession(lesson)!.player }}</span>
                             </div>
 
                             <!-- ベストセッション詳細 -->
@@ -153,12 +153,12 @@
                                 class="expand-icon-sm"
                               />
                               <span class="recent-label">{{ idx === 0 ? '最新' : `${idx + 1}回前` }}</span>
-                              <span class="session-date">{{ formatDateTime(session.date) }}</span>
-                              <span class="session-player">{{ session.player }}</span>
                               <span class="session-score" :class="getScoreClass(session.score)">
                                 {{ session.score }}点
                               </span>
                               <span class="session-time">{{ session.playTime }}秒</span>
+                              <span class="session-date">{{ formatDateTime(session.date) }}</span>
+                              <span class="session-player">{{ session.player }}</span>
                             </div>
 
                             <!-- セッション詳細 -->

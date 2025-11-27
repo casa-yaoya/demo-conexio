@@ -188,17 +188,29 @@
         </div>
       </div>
 
-      <!-- リセットボタン -->
-      <UButton
-        variant="outline"
-        color="neutral"
-        block
-        class="reset-button"
-        @click="clearFilters"
-      >
-        <UIcon name="i-lucide-rotate-ccw" class="mr-2" />
-        フィルターをリセット
-      </UButton>
+      <!-- 全選択・全解除ボタン -->
+      <div class="filter-action-buttons">
+        <UButton
+          variant="outline"
+          color="primary"
+          block
+          size="sm"
+          @click="selectAllFilters"
+        >
+          <UIcon name="i-lucide-check-square" class="mr-2" />
+          全選択
+        </UButton>
+        <UButton
+          variant="outline"
+          color="neutral"
+          block
+          size="sm"
+          @click="deselectAllFilters"
+        >
+          <UIcon name="i-lucide-square" class="mr-2" />
+          全解除
+        </UButton>
+      </div>
     </div>
   </div>
 </template>
@@ -579,9 +591,40 @@ const initializeDefaults = () => {
   emitFilters()
 }
 
-// === フィルタークリア ===
-const clearFilters = () => {
-  initializeDefaults()
+// === 全選択 ===
+const selectAllFilters = () => {
+  // 全レッスンを選択
+  const lessons = props.filterOptions.lessons || {}
+  const allLessons = new Set<string>()
+  for (const key in lessons) {
+    for (const lesson of lessons[key]) {
+      allLessons.add(lesson)
+    }
+  }
+  selectedLessons.value = allLessons
+
+  // 全プレイヤーを選択
+  const allPlayers = new Set(props.filterOptions.players || [])
+  selectedPlayers.value = allPlayers
+
+  // 全レベルを選択
+  selectedFilterLevels.value = new Set(['1', '2', '3', '4'])
+
+  emitFilters()
+}
+
+// === 全解除 ===
+const deselectAllFilters = () => {
+  // 全レッスンを解除
+  selectedLessons.value = new Set<string>()
+
+  // 全プレイヤーを解除
+  selectedPlayers.value = new Set<string>()
+
+  // 全レベルを解除
+  selectedFilterLevels.value = new Set<string>()
+
+  emitFilters()
 }
 
 // 期間の変更を監視
@@ -978,8 +1021,11 @@ defineExpose({
   flex-shrink: 0;
 }
 
-/* リセットボタン */
-.reset-button {
+/* 全選択・全解除ボタン */
+.filter-action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   margin-top: 6px;
 }
 

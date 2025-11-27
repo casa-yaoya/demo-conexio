@@ -72,6 +72,7 @@ const navigationItems = [
   { name: 'ランキング', path: '/ranking', icon: 'i-lucide-trophy' },
   { name: '個人記録', path: '/records', icon: 'i-lucide-award' },
   { name: 'ログ', path: '/logs', icon: 'i-lucide-file-text' },
+  { name: 'テストプレイ', path: '/test-play', icon: 'i-lucide-play-circle' },
   { name: 'ロープレ構築', path: '/content-creation', icon: 'i-lucide-pencil', badge: '開発中' },
 ]
 

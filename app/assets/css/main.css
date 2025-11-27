@@ -94,7 +94,7 @@ body {
 }
 
 .summary-filters {
-  width: 300px;
+  width: 260px;
   flex-shrink: 0;
   background: white;
   border-right: 1px solid #e2e8f0;
@@ -106,7 +106,7 @@ body {
 
 .summary-filters-sticky {
   width: 100%;
-  min-width: 280px;
+  min-width: 240px;
   overflow-y: auto;
   height: 100%;
 }

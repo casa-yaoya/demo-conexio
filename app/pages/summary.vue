@@ -20,10 +20,10 @@
             <div class="stats-header">
               <UIcon name="i-lucide-bar-chart-3" class="stats-header-icon" />
               集計データ
-            </div>
-            <div class="stats-period">
-              <UIcon name="i-lucide-calendar" class="period-icon" />
-              {{ selectedPeriodText }}
+              <span class="stats-period-inline">
+                <UIcon name="i-lucide-calendar" class="period-icon" />
+                {{ selectedPeriodText }}
+              </span>
             </div>
           </div>
           <div class="stats-grid">
@@ -619,6 +619,20 @@ onMounted(async () => {
   padding: 6px 12px;
   border-radius: var(--ui-radius);
   border: 1px solid var(--ui-border);
+}
+
+.stats-period-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ui-text-muted);
+  background: var(--ui-bg-elevated);
+  padding: 4px 10px;
+  border-radius: var(--ui-radius);
+  border: 1px solid var(--ui-border);
+  margin-left: 12px;
 }
 
 .period-icon {
