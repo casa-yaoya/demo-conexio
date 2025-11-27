@@ -574,7 +574,7 @@ interface CourseCategory {
 
 const courseTree = ref<CourseCategory[]>([
   {
-    name: 'Lv.1 基礎編',
+    name: 'Lv.1 学習',
     expanded: true,
     lessons: [
       { name: '飛び込み学習モード', status: 'published' },
@@ -583,7 +583,7 @@ const courseTree = ref<CourseCategory[]>([
     ]
   },
   {
-    name: 'Lv.2 応用編',
+    name: 'Lv.2 確認',
     expanded: false,
     lessons: [
       { name: '相手に寄り添うトーク', status: 'published' },
@@ -592,11 +592,18 @@ const courseTree = ref<CourseCategory[]>([
     ]
   },
   {
-    name: 'Lv.3 実践編',
+    name: 'Lv.3 実践',
     expanded: false,
     lessons: [
       { name: 'ロールプレイング基礎', status: 'draft' },
       { name: '顧客対応シミュレーション', status: 'draft' }
+    ]
+  },
+  {
+    name: 'Lv.4 実力だめし',
+    expanded: false,
+    lessons: [
+      { name: '総合テスト', status: 'draft' }
     ]
   }
 ])

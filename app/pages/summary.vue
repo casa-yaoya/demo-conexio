@@ -555,13 +555,8 @@ const downloadSummaryOnlyCSV = () => {
 
 // プレイヤー詳細を含むCSVダウンロード
 const downloadCSVWithPlayerDetails = () => {
-  // 表示単位のラベルを取得
-  const unitLabel = summaryDisplayUnit.value === 'lesson' ? 'レッスン'
-    : summaryDisplayUnit.value === 'level' ? 'レベル'
-    : 'コース'
-
-  // ヘッダー：表示単位、アカウント、グループ、プレイヤー、各種統計
-  const headers = [unitLabel, 'アカウント', 'グループ', 'プレイヤー', 'プレイ数', 'クリア数', '平均', 'ベスト', '累計時間', '平均時間']
+  // ヘッダー：カテゴリー、レベル、レッスン、アカウント、グループ、プレイヤー、各種統計
+  const headers = ['コース', 'レベル', 'レッスン', 'アカウント', 'グループ', 'プレイヤー', 'プレイ数', 'クリア数', '平均', 'ベスト', '累計時間', '平均時間']
 
   const rows: string[][] = []
 
@@ -569,10 +564,10 @@ const downloadCSVWithPlayerDetails = () => {
     const rowKey = getRowKey(item)
     const isExpanded = expandedRows[index]
 
-    // 表示単位の値を取得
-    const unitValue = summaryDisplayUnit.value === 'lesson' ? item.lessonDisplay
-      : summaryDisplayUnit.value === 'level' ? `${item.category} ${item.levelDisplay}`
-      : item.category
+    // カテゴリー、レベル、レッスンの値を取得
+    const category = item.category || ''
+    const level = item.levelDisplay || ''
+    const lesson = item.lessonDisplay || ''
 
     if (isExpanded && playerStatsCache[rowKey]) {
       // 展開されている行：プレイヤー詳細を出力
@@ -581,7 +576,9 @@ const downloadCSVWithPlayerDetails = () => {
         accountData.groups.forEach((groupData: any) => {
           groupData.players.forEach((player: any) => {
             rows.push([
-              unitValue,
+              category,
+              level,
+              lesson,
               accountData.account,
               groupData.group,
               player.player,
@@ -598,7 +595,9 @@ const downloadCSVWithPlayerDetails = () => {
     } else {
       // 展開されていない行：サマリー行のみ出力（プレイヤー列は空）
       rows.push([
-        unitValue,
+        category,
+        level,
+        lesson,
         '',
         '',
         '(集計)',
