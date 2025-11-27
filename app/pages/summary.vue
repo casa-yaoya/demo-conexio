@@ -542,8 +542,8 @@ const downloadSummaryOnlyCSV = () => {
         if (col.key === 'fivePlusPlayerCount') return item.fivePlusPlayerCount || 0
         if (col.key === 'avgScore') return item.avgScore
         if (col.key === 'bestScore') return item.bestScore
-        if (col.key === 'totalPlayTime') return formatTime(item.totalPlayTime)
-        if (col.key === 'avgPlayTime') return formatTime(item.avgPlayTime)
+        if (col.key === 'totalPlayTime') return formatTimeForCSV(item.totalPlayTime)
+        if (col.key === 'avgPlayTime') return formatTimeForCSV(item.avgPlayTime)
         if (col.key === 'bestScorer') return item.bestScorer || '-'
         return ''
       })
@@ -598,8 +598,8 @@ const downloadCSVWithPlayerDetails = () => {
               '-',
               `${player.avgScore}点`,
               `${player.bestScore}点`,
-              formatTime(player.totalPlayTime),
-              formatTime(player.avgPlayTime)
+              formatTimeForCSV(player.totalPlayTime),
+              formatTimeForCSV(player.avgPlayTime)
             ])
           })
         })
@@ -619,8 +619,8 @@ const downloadCSVWithPlayerDetails = () => {
         String(item.fivePlusPlayerCount || 0),
         `${item.avgScore}点`,
         `${item.bestScore}点`,
-        formatTime(item.totalPlayTime),
-        formatTime(item.avgPlayTime)
+        formatTimeForCSV(item.totalPlayTime),
+        formatTimeForCSV(item.avgPlayTime)
       ])
     }
   })
@@ -679,6 +679,15 @@ const formatTime = (seconds: number | undefined) => {
   if (mins > 0) result += `${mins}分`
   if (secs > 0 || result === '') result += `${secs}秒`
   return result
+}
+
+// 時間フォーマット（秒 → hh:mm:ss形式）- CSV出力用
+const formatTimeForCSV = (seconds: number | undefined) => {
+  if (!seconds || seconds === 0) return '0:00:00'
+  const hours = Math.floor(seconds / 3600)
+  const mins = Math.floor((seconds % 3600) / 60)
+  const secs = Math.round(seconds % 60)
+  return `${hours}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
 }
 
 // 時間フォーマット（秒 → 54時間14分30秒形式）- 集計データ用

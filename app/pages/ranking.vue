@@ -313,7 +313,7 @@ const getRowClass = (rank: number): string => {
   return ''
 }
 
-// 時間フォーマット（秒 → 時分秒形式）
+// 時間フォーマット（秒 → 時分秒形式）- 画面表示用
 const formatTime = (seconds: number | undefined) => {
   if (!seconds || seconds === 0) return '-'
   const hours = Math.floor(seconds / 3600)
@@ -325,6 +325,15 @@ const formatTime = (seconds: number | undefined) => {
   if (mins > 0) result += `${mins}分`
   if (secs > 0 || result === '') result += `${secs}秒`
   return result
+}
+
+// 時間フォーマット（秒 → hh:mm:ss形式）- CSV出力用
+const formatTimeForCSV = (seconds: number | undefined) => {
+  if (!seconds || seconds === 0) return '0:00:00'
+  const hours = Math.floor(seconds / 3600)
+  const mins = Math.floor((seconds % 3600) / 60)
+  const secs = Math.round(seconds % 60)
+  return `${hours}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
 }
 
 // CSVダウンロード
@@ -342,7 +351,7 @@ const downloadCSV = () => {
           return `${value}位`
         }
         if (col.key === 'totalPlayTime' || col.key === 'totalSpeechTime') {
-          return formatTime(value)
+          return formatTimeForCSV(value)
         }
         // 回数系の列には「回」を付ける
         if (['totalPlays', 'playsMay', 'playsJun', 'playsJul', 'playsAug', 'playsSep', 'playsOct', 'playsNov', 'clearCount'].includes(col.key)) {
