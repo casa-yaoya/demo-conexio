@@ -3,14 +3,17 @@
     <div class="cc-ai-chat-component">
       <!-- チャットメッセージエリア -->
       <div ref="messagesContainer" class="cc-chat-messages">
-        <!-- ドラッグ&ドロップエリア（初期表示） - 親コンポーネントで処理するため無効化 -->
-        <div v-if="messages.length === 0" class="cc-chat-dropzone">
+        <!-- ドラッグ&ドロップエリア（初期表示） -->
+        <div
+          v-if="messages.length === 0"
+          class="cc-chat-dropzone"
+          @click="attachFile"
+        >
           <div class="cc-dropzone-icon">📁</div>
           <div class="cc-dropzone-text">
             ファイルをアップロードするか、<br>
             テキスト入力で構築を開始。<br>
-            ドラッグ&ドロップも可<br>
-            <span class="cc-dropzone-hint">推奨データ：PDF, EXCEL, 録音, 録画</span>
+            <span class="cc-dropzone-action">クリックまたはドラッグ&ドロップ</span>
           </div>
         </div>
 
@@ -44,13 +47,23 @@
           <UButton
             v-for="(suggestion, index) in suggestions"
             :key="index"
-            variant="outline"
-            color="neutral"
+            :variant="isMultiSelect && selectedSuggestions.includes(suggestion.value || '') ? 'solid' : 'outline'"
+            :color="isMultiSelect && selectedSuggestions.includes(suggestion.value || '') ? 'primary' : 'neutral'"
             block
             class="justify-start"
             @click="handleSuggestionClick(suggestion)"
           >
             {{ suggestion.label }}
+          </UButton>
+          <!-- 複数選択時の確定ボタン -->
+          <UButton
+            v-if="isMultiSelect && selectedSuggestions.length > 0"
+            color="primary"
+            block
+            class="mt-2"
+            @click="confirmMultiSelect"
+          >
+            選択を確定（{{ selectedSuggestions.length }}件）
           </UButton>
         </div>
       </div>
@@ -66,28 +79,11 @@
         ></textarea>
         <div class="cc-button-group">
           <UButton
-            variant="outline"
-            color="neutral"
-            icon="i-lucide-paperclip"
-            @click="attachFile"
-          >
-            ファイルを添付
-          </UButton>
-          <UButton
             color="primary"
             icon="i-lucide-send"
             @click="sendMessage"
           >
             送信
-          </UButton>
-        </div>
-        <div class="cc-roleplay-generate-wrapper">
-          <UButton
-            color="secondary"
-            variant="soft"
-            @click="openFileSelectionDialog"
-          >
-            🎭 ロープレ生成
           </UButton>
         </div>
       </div>
@@ -105,13 +101,14 @@
 </template>
 
 <script setup lang="ts">
-import type { ChatMessage, FileData } from '~/types/roleplay'
+import type { ChatMessage, FileData, RoleplayContext } from '../types/roleplay'
 
 const emit = defineEmits<{
   'file-uploaded': [file: FileData]
   'open-file-selection': []
   'file-upload-started': [file: FileData]
   'file-type-updated': [data: { fileName: string; dataType: string }]
+  'start-roleplay-generation': [context: RoleplayContext]
 }>()
 
 interface Suggestion {
@@ -119,6 +116,9 @@ interface Suggestion {
   action: string
   value?: string
 }
+
+// チャットエージェントの状態
+type AgentState = 'idle' | 'awaiting_file_type' | 'awaiting_goals' | 'awaiting_additional' | 'generating'
 
 const messages = ref<ChatMessage[]>([])
 const userInput = ref('')
@@ -131,10 +131,48 @@ const uploadProgress = ref(0)
 const isAnalyzing = ref(false)
 const analysisMessageIndex = ref(-1)
 
+// エージェント状態管理
+const agentState = ref<AgentState>('idle')
+const isMultiSelect = ref(false)
+const selectedSuggestions = ref<string[]>([])
+
+// 収集したデータ
+const collectedData = ref<{
+  files: FileData[]
+  selectedGoals: string[]
+  additionalInfo: string[]
+}>({
+  files: [],
+  selectedGoals: [],
+  additionalInfo: []
+})
+
+// ロープレ構築可能かどうか
+const canGenerateRoleplay = computed(() => {
+  return collectedData.value.files.length > 0 || collectedData.value.additionalInfo.length > 0
+})
+
+// ファイルタイプの選択肢
+const fileTypeSuggestions: Suggestion[] = [
+  { label: '📖 対話データ（お手本など）', action: 'selectFileType', value: 'dialogue' },
+  { label: '🏭 商品データ（自社の扱うもの）', action: 'selectFileType', value: 'product' },
+  { label: '📚 教材データ（研修教材など）', action: 'selectFileType', value: 'material' },
+  { label: '👥 顧客データ（ペルソナなど）', action: 'selectFileType', value: 'customer' },
+  { label: '📄 その他（テキストで入力）', action: 'selectFileType', value: 'other' }
+]
+
+// ゴールの選択肢
+const goalSuggestions: Suggestion[] = [
+  { label: '📝 暗記：台本を完璧に覚えて話す', action: 'selectGoal', value: 'memorize' },
+  { label: '💬 切り返し：質問や反論に正しく返す', action: 'selectGoal', value: 'response' },
+  { label: '🎯 ヒアリング：相手から情報を引き出す', action: 'selectGoal', value: 'hearing' },
+  { label: '🗣️ 話し方：言葉づかい、声量、速さ、間を身に付ける', action: 'selectGoal', value: 'speaking' }
+]
+
 const sendMessage = async () => {
   if (!userInput.value.trim() || isLoading.value) return
 
-  const message = userInput.value
+  const message = userInput.value.trim()
   userInput.value = ''
 
   // ユーザーメッセージを追加
@@ -143,10 +181,38 @@ const sendMessage = async () => {
     content: message
   })
 
+  // 状態に応じた処理
+  if (agentState.value === 'awaiting_file_type' && pendingFile.value) {
+    // 「その他」を選んでテキスト入力した場合
+    handleOtherFileType(message)
+  } else if (agentState.value === 'awaiting_additional') {
+    // 追加情報として保存
+    collectedData.value.additionalInfo.push(message)
+
+    // 追加情報の確認メッセージ
+    messages.value.push({
+      role: 'assistant',
+      content: `了解です。情報を追加しました。<br><br>他に追加したい情報はありますか？<br><span style="color: #6b7280; font-size: 13px;">（「ロープレ構築」ボタンを押すと構築が開始されます）</span>`
+    })
+    scrollToBottom()
+  } else if (agentState.value === 'idle') {
+    // 初期状態でテキスト入力された場合
+    collectedData.value.additionalInfo.push(message)
+
+    // ゴール選択に移行
+    askForGoals()
+  } else {
+    // その他の状態ではAPIに送信
+    await sendToAPI(message)
+  }
+
+  scrollToBottom()
+}
+
+const sendToAPI = async (message: string) => {
   isLoading.value = true
 
   try {
-    // TODO: API呼び出しを実装
     const response = await $fetch<{ content: string }>('/api/chat', {
       method: 'POST',
       body: {
@@ -154,7 +220,6 @@ const sendMessage = async () => {
       }
     })
 
-    // アシスタントメッセージを追加
     messages.value.push({
       role: 'assistant',
       content: response.content
@@ -190,15 +255,7 @@ const handleFileSelect = (event: Event) => {
   if (file) {
     handleFile(file)
   }
-  // Reset input
   target.value = ''
-}
-
-const handleDrop = (event: DragEvent) => {
-  const file = event.dataTransfer?.files[0]
-  if (file) {
-    handleFile(file)
-  }
 }
 
 const handleFile = async (file: File) => {
@@ -217,7 +274,7 @@ const handleFile = async (file: File) => {
     </div>`
   })
 
-  // 解析中メッセージを追加（進捗付き）
+  // 解析中メッセージを追加
   isAnalyzing.value = true
   uploadProgress.value = 0
   analysisMessageIndex.value = messages.value.length
@@ -228,7 +285,7 @@ const handleFile = async (file: File) => {
 
   scrollToBottom()
 
-  // ファイルを即時アップロード開始（タイプは後で設定）
+  // ファイルデータを作成
   const fileData: FileData = {
     name: file.name,
     size: file.size,
@@ -238,15 +295,14 @@ const handleFile = async (file: File) => {
     extractedText: ''
   }
 
-  // アップロード開始を通知
   emit('file-upload-started', fileData)
 
-  // 解析をシミュレート（実際はAPIを呼び出す）
+  // 解析をシミュレート
   await simulateFileAnalysis(file, fileData)
 }
 
 const getAnalysisProgressHtml = (progress: number) => {
-  const progressBar = `
+  return `ファイルをアップロードしています...
     <div style="margin-top: 8px;">
       <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
         <span>解析中...</span>
@@ -255,13 +311,10 @@ const getAnalysisProgressHtml = (progress: number) => {
       <div style="background: #e5e7eb; border-radius: 4px; height: 8px; overflow: hidden;">
         <div style="background: #3b82f6; height: 100%; width: ${progress}%; transition: width 0.3s;"></div>
       </div>
-    </div>
-  `
-  return `ファイルをアップロードしています...${progressBar}`
+    </div>`
 }
 
 const simulateFileAnalysis = async (file: File, fileData: FileData) => {
-  // 進捗を更新しながら解析をシミュレート
   const steps = [10, 25, 40, 55, 70, 85, 95, 100]
 
   for (const progress of steps) {
@@ -275,43 +328,34 @@ const simulateFileAnalysis = async (file: File, fileData: FileData) => {
     }
   }
 
-  // 解析完了
   isAnalyzing.value = false
-
-  // ダミーの抽出テキストを生成
   fileData.extractedText = generateDummyExtractedText(file.name)
 
-  // 完了メッセージを表示
+  // 完了メッセージと質問を表示
   if (analysisMessageIndex.value >= 0 && analysisMessageIndex.value < messages.value.length) {
     messages.value[analysisMessageIndex.value].content = `
       <div>
         <div style="color: #10b981; font-weight: 600; margin-bottom: 8px;">✓ 解析完了</div>
         <div>「${file.name}」の解析が完了しました。</div>
-        <div style="margin-top: 8px; padding: 8px 12px; background: #f0fdf4; border-radius: 6px; border-left: 3px solid #10b981;">
-          ファイルタブから確認できます。
-        </div>
-        <div style="margin-top: 12px;">このファイルはどのタイプのデータですか？</div>
+        <div style="margin-top: 12px; font-weight: 500;">このファイルはどんなデータですか？</div>
       </div>
     `
   }
 
-  // ファイルアップロード完了を通知
   emit('file-uploaded', fileData)
 
-  // サジェスションを表示（タイプ選択）
-  suggestions.value = [
-    { label: '📖 見本データ（商談や接客の正解例）', action: 'selectFileType', value: 'sample' },
-    { label: '📚 教材データ（学ばせたい内容の資料）', action: 'selectFileType', value: 'material' },
-    { label: '🏢 自社データ（商品情報や会社概要）', action: 'selectFileType', value: 'company' },
-    { label: '👥 顧客データ（想定顧客やペルソナ）', action: 'selectFileType', value: 'customer' },
-    { label: '📄 その他', action: 'selectFileType', value: 'other' }
-  ]
+  // ファイルタイプ選択のサジェスションを表示
+  agentState.value = 'awaiting_file_type'
+  isMultiSelect.value = false
+  suggestions.value = fileTypeSuggestions
+
+  // ファイルデータを一時保存
+  collectedData.value.files.push(fileData)
 
   scrollToBottom()
 }
 
 const generateDummyExtractedText = (fileName: string): string => {
-  // ファイル名に基づいてダミーテキストを生成
   if (fileName.includes('営業') || fileName.includes('sales')) {
     return `【営業トーク資料】
 
@@ -340,50 +384,186 @@ const generateDummyExtractedText = (fileName: string): string => {
   詳細なデータや情報が記載されています。
 
 ・セクション3: まとめ
-  全体のまとめと結論が記載されています。
-
-※ 実際の運用ではAIがファイルの内容を解析し、適切なテキストを抽出します。`
+  全体のまとめと結論が記載されています。`
 }
 
 const handleSuggestionClick = (suggestion: Suggestion) => {
-  if (suggestion.action === 'selectFileType' && pendingFile.value) {
-    const file = pendingFile.value
-    const dataTypeLabels: Record<string, string> = {
-      'sample': '見本データ',
-      'material': '教材データ',
-      'company': '自社データ',
-      'customer': '顧客データ',
-      'other': 'その他'
-    }
-
-    // ユーザーの選択を追加
-    messages.value.push({
-      role: 'user',
-      content: dataTypeLabels[suggestion.value || 'other']
-    })
-
-    // AIの確認メッセージ
-    messages.value.push({
-      role: 'assistant',
-      content: `承知しました。「${file.name}」を<strong>${dataTypeLabels[suggestion.value || 'other']}</strong>として登録しました。`
-    })
-
-    // ファイルのタイプを更新するイベントを発行
-    emit('file-type-updated', {
-      fileName: file.name,
-      dataType: dataTypeLabels[suggestion.value || 'other']
-    })
-
-    // サジェスションをクリア
-    suggestions.value = []
-    pendingFile.value = null
-
-    scrollToBottom()
+  if (suggestion.action === 'selectFileType') {
+    handleFileTypeSelection(suggestion)
+  } else if (suggestion.action === 'selectGoal') {
+    handleGoalSelection(suggestion)
   }
 }
 
-const openFileSelectionDialog = () => {
-  emit('open-file-selection')
+const handleFileTypeSelection = (suggestion: Suggestion) => {
+  const file = pendingFile.value
+  if (!file) return
+
+  const dataTypeLabels: Record<string, string> = {
+    'dialogue': '対話データ',
+    'product': '商品データ',
+    'material': '教材データ',
+    'customer': '顧客データ',
+    'other': 'その他'
+  }
+
+  const selectedType = suggestion.value || 'other'
+
+  // ユーザーの選択を追加
+  messages.value.push({
+    role: 'user',
+    content: dataTypeLabels[selectedType]
+  })
+
+  // ファイルのタイプを更新
+  const fileIndex = collectedData.value.files.findIndex(f => f.name === file.name)
+  if (fileIndex >= 0) {
+    collectedData.value.files[fileIndex].dataType = dataTypeLabels[selectedType]
+  }
+
+  emit('file-type-updated', {
+    fileName: file.name,
+    dataType: dataTypeLabels[selectedType]
+  })
+
+  suggestions.value = []
+  pendingFile.value = null
+
+  if (selectedType === 'other') {
+    // その他の場合はテキスト入力を促す
+    messages.value.push({
+      role: 'assistant',
+      content: 'どのようなデータか教えてください。'
+    })
+    // 状態はawating_file_typeのまま
+  } else {
+    // 次のステップ：ゴール選択
+    askForGoals()
+  }
+
+  scrollToBottom()
+}
+
+const handleOtherFileType = (description: string) => {
+  const file = pendingFile.value
+  if (!file) return
+
+  // ファイルのタイプを更新
+  const fileIndex = collectedData.value.files.findIndex(f => f.name === file.name)
+  if (fileIndex >= 0) {
+    collectedData.value.files[fileIndex].dataType = description
+  }
+
+  emit('file-type-updated', {
+    fileName: file.name,
+    dataType: description
+  })
+
+  pendingFile.value = null
+
+  // 次のステップ：ゴール選択
+  askForGoals()
+}
+
+const askForGoals = () => {
+  // すでにゴールが選択されている場合は追加情報へ
+  if (collectedData.value.selectedGoals.length > 0) {
+    askForAdditionalInfo()
+    return
+  }
+
+  agentState.value = 'awaiting_goals'
+  isMultiSelect.value = true
+  selectedSuggestions.value = []
+
+  messages.value.push({
+    role: 'assistant',
+    content: `承知しました。<br><br><strong>求めるゴールはどれが近いですか？</strong><br><span style="color: #6b7280; font-size: 13px;">（複数選択可）</span>`
+  })
+
+  suggestions.value = goalSuggestions
+  scrollToBottom()
+}
+
+const handleGoalSelection = (suggestion: Suggestion) => {
+  const value = suggestion.value || ''
+
+  if (selectedSuggestions.value.includes(value)) {
+    // 選択解除
+    selectedSuggestions.value = selectedSuggestions.value.filter(v => v !== value)
+  } else {
+    // 選択追加
+    selectedSuggestions.value.push(value)
+  }
+}
+
+const confirmMultiSelect = () => {
+  if (selectedSuggestions.value.length === 0) return
+
+  const goalLabels: Record<string, string> = {
+    'memorize': '暗記',
+    'response': '切り返し',
+    'hearing': 'ヒアリング',
+    'speaking': '話し方'
+  }
+
+  const selectedLabels = selectedSuggestions.value.map(v => goalLabels[v] || v)
+
+  // ユーザーの選択を追加
+  messages.value.push({
+    role: 'user',
+    content: selectedLabels.join('、')
+  })
+
+  // データを保存
+  collectedData.value.selectedGoals = [...selectedSuggestions.value]
+
+  // リセット
+  suggestions.value = []
+  isMultiSelect.value = false
+  selectedSuggestions.value = []
+
+  // 次のステップ：追加情報
+  askForAdditionalInfo()
+}
+
+const askForAdditionalInfo = () => {
+  agentState.value = 'awaiting_additional'
+
+  messages.value.push({
+    role: 'assistant',
+    content: `了解です。他に追加したい情報はありますか？<br><br><span style="color: #6b7280; font-size: 13px;">（「ロープレ構築」ボタンを押すと構築が開始されます）</span>`
+  })
+
+  scrollToBottom()
+}
+
+const startRoleplayGeneration = () => {
+  if (!canGenerateRoleplay.value) return
+
+  agentState.value = 'generating'
+  suggestions.value = []
+
+  // 構築中メッセージを表示
+  messages.value.push({
+    role: 'assistant',
+    content: `<div style="display: flex; align-items: center; gap: 8px;">
+      <span class="cc-loading-spinner" style="width: 16px; height: 16px; border: 2px solid #e5e7eb; border-top-color: #3b82f6; border-radius: 50%; animation: spin 0.8s linear infinite;"></span>
+      <span>ロープレを構築中...</span>
+    </div>`
+  })
+
+  scrollToBottom()
+
+  // コンテキストを作成して親に通知
+  const context: RoleplayContext = {
+    files: collectedData.value.files,
+    goals: collectedData.value.selectedGoals,
+    additionalInfo: collectedData.value.additionalInfo,
+    chatHistory: messages.value
+  }
+
+  emit('start-roleplay-generation', context)
 }
 
 const formatFileSize = (bytes: number): string => {
@@ -397,11 +577,108 @@ const handleDroppedFile = (file: File) => {
   handleFile(file)
 }
 
+// 構築完了を通知（親から呼ばれる）
+const notifyGenerationComplete = (success: boolean, message?: string) => {
+  // 構築中メッセージを削除
+  const loadingIndex = messages.value.findIndex(
+    m => m.content.includes('ロープレを構築中')
+  )
+  if (loadingIndex >= 0) {
+    messages.value.splice(loadingIndex, 1)
+  }
+
+  if (success) {
+    messages.value.push({
+      role: 'assistant',
+      content: message || `<div>
+        <div style="color: #10b981; font-weight: 600; margin-bottom: 8px;">✓ ロープレ構築完了</div>
+        <div>ロープレコンテンツが生成されました。</div>
+        <div style="margin-top: 12px; padding: 8px 12px; background: #f0fdf4; border-radius: 6px; border-left: 3px solid #10b981;">
+          右側の各タブから確認・編集できます。
+        </div>
+      </div>`
+    })
+  } else {
+    messages.value.push({
+      role: 'assistant',
+      content: message || `<div style="color: #ef4444;">
+        <div style="font-weight: 600; margin-bottom: 8px;">⚠ 構築エラー</div>
+        <div>ロープレの構築中にエラーが発生しました。もう一度お試しください。</div>
+      </div>`
+    })
+  }
+
+  agentState.value = 'awaiting_additional'
+  scrollToBottom()
+}
+
 // データをグローバルに公開
-defineExpose({ messages, handleDroppedFile })
+defineExpose({
+  messages,
+  handleDroppedFile,
+  notifyGenerationComplete,
+  collectedData
+})
 </script>
 
 <style scoped>
+.cc-chat-component {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.cc-ai-chat-component {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.cc-chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.cc-chat-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  color: #6b7280;
+  cursor: pointer;
+  border: 2px dashed #e5e7eb;
+  border-radius: 12px;
+  margin: 16px;
+  transition: all 0.2s;
+}
+
+.cc-chat-dropzone:hover {
+  border-color: #3b82f6;
+  background: #f8fafc;
+}
+
+.cc-dropzone-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.cc-dropzone-text {
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.cc-dropzone-action {
+  display: block;
+  margin-top: 12px;
+  font-size: 13px;
+  color: #3b82f6;
+  font-weight: 500;
+}
+
 .cc-message {
   display: flex;
   gap: 12px;
@@ -461,20 +738,41 @@ defineExpose({ messages, handleDroppedFile })
   padding: 12px 0;
 }
 
-.cc-chat-suggestion-btn {
-  padding: 10px 16px;
+.cc-chat-input-area {
+  padding: 12px;
+  border-top: 1px solid #e5e7eb;
   background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  text-align: left;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-size: 14px;
-  color: #374151;
 }
 
-.cc-chat-suggestion-btn:hover {
-  background: #f9fafb;
+.cc-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+  resize: none;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.cc-textarea:focus {
   border-color: #3b82f6;
+}
+
+.cc-button-group {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  justify-content: flex-end;
+}
+
+.cc-roleplay-generate-wrapper {
+  margin-top: 8px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

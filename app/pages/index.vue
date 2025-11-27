@@ -7,10 +7,10 @@ definePageMeta({
   layout: 'default'
 })
 
-// Redirect to summary page on load
+// Redirect to content-creation page on load
 const router = useRouter()
 
 onMounted(() => {
-  router.replace('/summary')
+  router.replace('/content-creation')
 })
 </script>

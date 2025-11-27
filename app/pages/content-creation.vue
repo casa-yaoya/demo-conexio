@@ -1,8 +1,8 @@
 <template>
   <div class="content-creation-container">
-    <!-- 操作コンポーネント (Left Column - spans 2 rows) -->
+    <!-- 左列: 操作パネル -->
     <div
-      class="cc-panel cc-operation-component"
+      class="cc-panel cc-operation-panel"
       @dragenter.prevent="handleDragEnter"
       @dragover.prevent="handleDragOver"
       @dragleave.prevent="handleDragLeave"
@@ -15,28 +15,45 @@
           <div class="cc-drop-text">ファイルをアップロード</div>
         </div>
       </div>
-      <!-- カテゴリー選択 -->
-      <div class="cc-category-selector">
-        <label class="cc-selector-label">コース:</label>
+      <!-- コースヘッダー -->
+      <div class="cc-panel-header">
+        <UIcon name="i-lucide-book-open" class="cc-panel-header-icon" />
+        <span class="cc-panel-header-title">コース</span>
         <USelect
           v-model="selectedCategory"
           :items="categoryOptions"
           size="sm"
-          class="flex-1"
+          class="cc-panel-header-select"
         />
       </div>
 
       <!-- タブナビゲーション -->
-      <UTabs
-        :items="operationTabItems"
-        v-model="operationTab"
-        class="w-full"
-        :ui="{
-          list: 'bg-slate-50 border-b border-slate-200',
-          trigger: 'flex-1 py-3 px-4 text-sm font-semibold text-slate-500 bg-transparent data-[state=active]:text-sky-500 data-[state=active]:bg-white data-[state=active]:shadow-none relative after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-transparent data-[state=active]:after:bg-sky-500',
-          indicator: 'hidden'
-        }"
-      />
+      <div class="cc-panel-tabs">
+        <button
+          class="cc-panel-tab"
+          :class="{ active: operationTab === 'chat' }"
+          @click="operationTab = 'chat'"
+        >
+          <UIcon name="i-lucide-message-square" class="cc-panel-tab-icon" />
+          <span>チャット</span>
+        </button>
+        <button
+          class="cc-panel-tab"
+          :class="{ active: operationTab === 'course' }"
+          @click="operationTab = 'course'"
+        >
+          <UIcon name="i-lucide-folder-tree" class="cc-panel-tab-icon" />
+          <span>コース</span>
+        </button>
+        <button
+          class="cc-panel-tab"
+          :class="{ active: operationTab === 'files' }"
+          @click="operationTab = 'files'"
+        >
+          <UIcon name="i-lucide-file-text" class="cc-panel-tab-icon" />
+          <span>ファイル</span>
+        </button>
+      </div>
 
       <!-- チャットタブ -->
       <div v-show="operationTab === 'chat'" class="cc-operation-tab-content active">
@@ -46,6 +63,7 @@
           @file-upload-started="handleFileUploadStarted"
           @file-type-updated="handleFileTypeUpdated"
           @open-file-selection="openFileSelectionDialog"
+          @start-roleplay-generation="handleStartRoleplayGeneration"
         />
       </div>
 
@@ -150,66 +168,41 @@
       </div>
     </div>
 
-    <!-- プレイコンポーネント (Right Column Top) -->
-    <div class="cc-panel cc-play-component">
-      <!-- プレイエリアヘッダー -->
-      <div class="cc-play-header">
-        <div class="cc-lesson-selector">
-          <label class="cc-selector-label">レッスン:</label>
+    <!-- 中央列: 構築パネル -->
+    <div class="cc-panel cc-build-panel">
+      <BuildPanel
+        :points="buildPoints"
+        :overview="buildOverview"
+        :script-lines="buildScriptLines"
+        :is-building="isBuilding"
+        :building-step="buildingStep"
+        :character-options="characterOptions"
+        :selected-character="selectedCharacter"
+        @update:overview="buildOverview = $event"
+        @update:selected-persona="selectedCharacter = $event"
+        @start-build="openFileSelectionDialog"
+        @generate-prompts="generateAllPrompts"
+      />
+    </div>
+
+    <!-- 右列: プレイエリア（上）＋プロンプトパネル（下） -->
+    <div class="cc-right-column">
+      <!-- プレイエリア（上） -->
+      <div class="cc-panel cc-play-component">
+        <!-- レッスンヘッダー -->
+        <div class="cc-panel-header">
+          <UIcon name="i-lucide-play-circle" class="cc-panel-header-icon" />
+          <span class="cc-panel-header-title">レッスン</span>
           <USelect
             v-model="selectedLesson"
             :items="lessonOptions"
-            placeholder="レッスンを選択..."
+            placeholder="選択..."
             size="sm"
-            class="flex-1"
+            class="cc-panel-header-select"
           />
         </div>
-      </div>
 
-      <div class="cc-play-content">
-        <!-- ロープレモード選択コンポーネント (Left) -->
-        <div class="cc-roleplay-mode-component">
-          <div class="cc-mode-title">モードを選ぶ</div>
-          <div class="cc-mode-buttons">
-            <UButton
-              :variant="selectedMode === 'subtitle' ? 'solid' : 'outline'"
-              :color="selectedMode === 'subtitle' ? 'primary' : 'neutral'"
-              size="sm"
-              class="cc-mode-button"
-              @click="selectedMode = 'subtitle'"
-            >
-              台本モード
-            </UButton>
-            <UButton
-              :variant="selectedMode === 'ai-demo' ? 'solid' : 'outline'"
-              :color="selectedMode === 'ai-demo' ? 'primary' : 'neutral'"
-              size="sm"
-              class="cc-mode-button"
-              @click="selectedMode = 'ai-demo'"
-            >
-              お手本モード
-            </UButton>
-            <UButton
-              :variant="selectedMode === 'confirmation' ? 'solid' : 'outline'"
-              :color="selectedMode === 'confirmation' ? 'primary' : 'neutral'"
-              size="sm"
-              class="cc-mode-button"
-              @click="selectedMode = 'confirmation'"
-            >
-              確認モード
-            </UButton>
-            <UButton
-              :variant="selectedMode === 'practice' ? 'solid' : 'outline'"
-              :color="selectedMode === 'practice' ? 'primary' : 'neutral'"
-              size="sm"
-              class="cc-mode-button"
-              @click="selectedMode = 'practice'"
-            >
-              実戦モード
-            </UButton>
-          </div>
-        </div>
-
+        <div class="cc-play-content">
         <!-- 再生コンポーネント (Center: Video Display) -->
         <div class="cc-playback-component">
           <!-- Video Window -->
@@ -243,25 +236,41 @@
 
           <!-- 操作コンポーネント (Control Buttons) -->
           <div class="cc-control-component">
-            <UButton
-              :variant="conversationActive ? 'solid' : 'outline'"
-              :color="conversationActive ? 'error' : 'primary'"
-              size="lg"
-              class="cc-start-button-new"
-              @click="toggleRoleplay"
-            >
-              {{ conversationActive ? '■ 停止' : '▶ スタート' }}
-            </UButton>
-            <UButton
-              :variant="isRecording ? 'solid' : 'outline'"
-              :color="isRecording ? 'error' : 'neutral'"
-              size="lg"
-              class="cc-mic-button-new"
-              @click="toggleMic"
-            >
-              <span class="cc-mic-icon">🎤</span>
-              <span class="cc-mic-text">{{ isRecording ? '録音中...' : 'OFF' }}</span>
-            </UButton>
+            <div class="cc-control-buttons">
+              <UButton
+                :variant="conversationActive ? 'solid' : 'outline'"
+                :color="conversationActive ? 'error' : 'primary'"
+                size="lg"
+                class="cc-start-button-new"
+                @click="toggleRoleplay"
+              >
+                {{ conversationActive ? '■ 停止' : '▶ スタート' }}
+              </UButton>
+              <UButton
+                :variant="isRecording ? 'solid' : 'outline'"
+                :color="isRecording ? 'error' : 'neutral'"
+                size="lg"
+                class="cc-mic-button-new"
+                @click="toggleMic"
+              >
+                <span class="cc-mic-icon">🎤</span>
+                <span class="cc-mic-text">{{ isRecording ? '録音中...' : 'OFF' }}</span>
+              </UButton>
+            </div>
+            <div class="cc-roleplay-message">
+              <span v-if="conversationActive && isSpeaking" class="cc-message-text cc-message-speaking">
+                AIが話しています...
+              </span>
+              <span v-else-if="conversationActive && isRecording" class="cc-message-text cc-message-recording">
+                録音中...あなたの番です
+              </span>
+              <span v-else-if="conversationActive" class="cc-message-text cc-message-waiting">
+                マイクボタンを押して話してください
+              </span>
+              <span v-else class="cc-message-text cc-message-idle">
+                スタートボタンでロープレを開始
+              </span>
+            </div>
           </div>
         </div>
 
@@ -297,102 +306,58 @@
       </div>
     </div>
 
-    <!-- 設計コンポーネント (Right Column Bottom) -->
-    <div class="cc-panel cc-design-component">
-      <UTabs
-        :items="designTabItems"
-        v-model="designTab"
-        class="w-full"
-        :ui="{
-          list: 'bg-slate-50 border-b border-slate-200',
-          trigger: 'flex-1 py-3 px-4 text-sm font-semibold text-slate-500 bg-transparent data-[state=active]:text-sky-500 data-[state=active]:bg-white data-[state=active]:shadow-none relative after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-transparent data-[state=active]:after:bg-sky-500',
-          indicator: 'hidden'
-        }"
-      />
-
-      <!-- ロープレ設計コンポーネント (Tab 1) -->
-      <div v-show="designTab === 'diagram'" class="cc-tab-content active">
-        <RoleplayDesignForm ref="roleplayDesignForm" />
-      </div>
-
-      <!-- 会話の流れコンポーネント (Tab 2) -->
-      <div v-show="designTab === 'script'" class="cc-tab-content active">
-        <div v-if="scripts.length === 0" class="cc-input-data-container">
-          <div class="cc-input-data-empty">
-            <div class="cc-empty-icon">📝</div>
-            <div class="cc-empty-text">まだ会話の流れが生成されていません</div>
-            <div class="cc-empty-hint">「ロープレ生成」ボタンから生成できます</div>
-          </div>
+      <!-- プロンプトパネル（下） -->
+      <div class="cc-panel cc-prompt-panel">
+        <div class="cc-panel-header">
+          <UIcon name="i-lucide-file-code" class="cc-panel-header-icon" />
+          <span class="cc-panel-header-title">プロンプト</span>
         </div>
-        <div v-else class="cc-scripts-container">
-          <div v-for="(script, index) in scripts" :key="index" class="cc-script-card">
-            <div class="cc-script-card-header" @click="script.expanded = !script.expanded">
-              <span class="cc-script-expand-icon">{{ script.expanded ? '▼' : '▶' }}</span>
-              <span class="cc-script-card-title">{{ script.mode }}</span>
-              <UButton variant="ghost" color="neutral" size="xs" @click.stop="editScript(index)">編集</UButton>
-            </div>
-            <div v-show="script.expanded" class="cc-script-card-content">
-              <pre class="cc-script-content">{{ script.content }}</pre>
-            </div>
-          </div>
-        </div>
-      </div>
 
-      <!-- 設計書コンポーネント (Tab 3) -->
-      <div v-show="designTab === 'config'" class="cc-tab-content active">
-        <!-- 生成ボタン -->
-        <div class="cc-generate-prompts-bar">
-          <UButton
-            color="primary"
-            size="sm"
-            :disabled="isGeneratingPrompts"
-            @click="generateAllPrompts"
+        <!-- モード選択タブ -->
+        <div class="cc-panel-tabs">
+          <button
+            class="cc-panel-tab"
+            :class="{ active: selectedMode === 'subtitle' }"
+            @click="selectedMode = 'subtitle'"
           >
-            {{ isGeneratingPrompts ? '生成中...' : 'プロンプト生成' }}
-          </UButton>
-          <span class="cc-generate-hint">各モードのシステムプロンプトを自動生成します</span>
+            <UIcon name="i-lucide-scroll-text" class="cc-panel-tab-icon" />
+            <span>台本</span>
+          </button>
+          <button
+            class="cc-panel-tab"
+            :class="{ active: selectedMode === 'ai-demo' }"
+            @click="selectedMode = 'ai-demo'"
+          >
+            <UIcon name="i-lucide-sparkles" class="cc-panel-tab-icon" />
+            <span>お手本</span>
+          </button>
+          <button
+            class="cc-panel-tab"
+            :class="{ active: selectedMode === 'confirmation' }"
+            @click="selectedMode = 'confirmation'"
+          >
+            <UIcon name="i-lucide-check-circle" class="cc-panel-tab-icon" />
+            <span>確認</span>
+          </button>
+          <button
+            class="cc-panel-tab"
+            :class="{ active: selectedMode === 'practice' }"
+            @click="selectedMode = 'practice'"
+          >
+            <UIcon name="i-lucide-swords" class="cc-panel-tab-icon" />
+            <span>実戦</span>
+          </button>
         </div>
 
-        <div class="cc-prompts-container">
-          <div
-            v-for="(prompt, index) in systemPromptsDisplay"
-            :key="prompt.mode"
-            class="cc-prompt-card-editable"
-            :class="{ 'cc-generating': prompt.isGenerating }"
-          >
-            <div class="cc-prompt-card-header" @click="togglePromptExpand(index)">
-              <span class="cc-prompt-expand-icon">{{ prompt.expanded ? '▼' : '▶' }}</span>
-              <span class="cc-prompt-card-title">{{ prompt.mode }}</span>
-              <div class="cc-prompt-actions">
-                <UButton
-                  v-if="prompt.content"
-                  variant="ghost"
-                  color="neutral"
-                  size="xs"
-                  @click.stop="editPrompt(index)"
-                >
-                  編集
-                </UButton>
-                <UButton
-                  color="success"
-                  size="xs"
-                  :disabled="prompt.isGenerating"
-                  @click.stop="generateSinglePrompt(prompt.modeKey, index)"
-                >
-                  {{ prompt.isGenerating ? '...' : '生成' }}
-                </UButton>
-              </div>
-            </div>
-            <div v-show="prompt.expanded" class="cc-prompt-card-content">
-              <div v-if="prompt.isGenerating" class="cc-prompt-loading">
-                <span class="cc-loading-spinner"></span>
-                <span>プロンプトを生成中...</span>
-              </div>
-              <pre v-else-if="prompt.content" class="cc-prompt-content-text">{{ prompt.content }}</pre>
-              <div v-else class="cc-prompt-empty">
-                <span>まだ生成されていません</span>
-              </div>
-            </div>
+        <div class="cc-prompt-content-wrapper">
+          <div v-if="currentPrompt?.isGenerating" class="cc-prompt-loading">
+            <span class="cc-loading-spinner"></span>
+            <span>プロンプトを生成中...</span>
+          </div>
+          <pre v-else-if="currentPrompt?.content" class="cc-prompt-content-text">{{ currentPrompt.content }}</pre>
+          <div v-else class="cc-prompt-empty">
+            <span>まだ生成されていません</span>
+            <p class="cc-prompt-empty-hint">「プロンプト生成」ボタンで{{ selectedModeLabel }}用のプロンプトを生成します</p>
           </div>
         </div>
       </div>
@@ -417,8 +382,8 @@
 </template>
 
 <script setup lang="ts">
-import type { FileData } from '~/types/roleplay'
-import type { RealtimeConfig } from '~/composables/useRealtimeAPI'
+import type { FileData, RoleplayContext } from '../types/roleplay'
+import type { RealtimeConfig } from '../composables/useRealtimeAPI'
 
 definePageMeta({
   layout: 'default'
@@ -455,14 +420,21 @@ const selectedLesson = ref('')
 const selectedMode = ref('confirmation')
 const selectedCharacter = ref('businessman')
 const selectedVoice = ref<'alloy' | 'echo' | 'shimmer' | 'ash' | 'ballad' | 'coral' | 'sage' | 'verse'>('alloy')
-const designTab = ref('diagram')
 
-// Design Tab Items for UTabs
-const designTabItems = [
-  { label: 'ロープレ設計', value: 'diagram' },
-  { label: '会話の流れ', value: 'script' },
-  { label: '設計書', value: 'config' }
-]
+// 構築パネル用の状態
+const isBuilding = ref(false)
+const buildingStep = ref('')
+const buildGoals = ref<string[]>([])
+const buildPoints = ref<Array<{ question: string; answer: string }>>([])
+const buildOverview = ref('')
+const buildScriptLines = ref<Array<{ speaker: 'self' | 'opponent'; text: string }>>([])
+
+// スクリプト展開トグル
+const toggleScriptExpand = (index: number) => {
+  if (scripts.value[index]) {
+    scripts.value[index].expanded = !scripts.value[index].expanded
+  }
+}
 
 // Select options for USelect components
 const categoryOptions = [
@@ -559,6 +531,43 @@ const systemPromptsDisplay = ref<SystemPromptDisplay[]>(
     isGenerating: false
   }))
 )
+
+// モードラベルのマッピング
+const modeLabelMap: Record<string, string> = {
+  'subtitle': '台本モード',
+  'ai-demo': 'お手本モード',
+  'confirmation': '確認モード',
+  'practice': '実戦モード'
+}
+
+// 選択中のモードのラベル
+const selectedModeLabel = computed(() => modeLabelMap[selectedMode.value] || selectedMode.value)
+
+// 選択中のモードに対応するプロンプト
+const currentPrompt = computed(() => {
+  return systemPromptsDisplay.value.find(p => p.modeKey === selectedMode.value)
+})
+
+// 選択中のモードのインデックス
+const currentPromptIndex = computed(() => {
+  return systemPromptsDisplay.value.findIndex(p => p.modeKey === selectedMode.value)
+})
+
+// 選択中のモードのプロンプトを生成
+const generateCurrentModePrompt = () => {
+  const index = currentPromptIndex.value
+  if (index >= 0) {
+    generateSinglePrompt(selectedMode.value, index)
+  }
+}
+
+// 選択中のモードのプロンプトを編集
+const editCurrentPrompt = () => {
+  const index = currentPromptIndex.value
+  if (index >= 0) {
+    editPrompt(index)
+  }
+}
 
 // コースツリー構造
 interface CourseLesson {
@@ -821,7 +830,157 @@ const openFileSelectionDialog = () => {
   showFileSelectionDialog.value = true
 }
 
-// ロープレ生成処理
+// ロープレ構築開始（ChatAreaから呼ばれる）
+const handleStartRoleplayGeneration = async (context: RoleplayContext) => {
+  console.log('Starting roleplay generation with context:', context)
+
+  // 構築開始
+  isBuilding.value = true
+  buildingStep.value = 'ポイントを抽出中...'
+
+  // ロープレ設計データを取得
+  const roleplayDesign = roleplayDesignForm.value?.getDesign?.() || null
+
+  // ゴールラベルのマッピング
+  const goalLabels: Record<string, string> = {
+    'memorize': '暗記',
+    'response': '切り返し',
+    'hearing': 'ヒアリング',
+    'speaking': '話し方'
+  }
+
+  // ゴールを設定
+  buildGoals.value = context.goals.map(g => goalLabels[g] || g)
+
+  try {
+    // 1. ポイント要約を生成
+    buildingStep.value = 'ポイントを抽出中...'
+    const pointsResponse = await $fetch<{ points: Array<{ question: string; answer: string }> }>('/api/generate-points', {
+      method: 'POST',
+      body: {
+        files: context.files.map(f => ({
+          name: f.name,
+          content: f.extractedText,
+          dataType: f.dataType
+        })),
+        goals: context.goals.map(g => goalLabels[g] || g),
+        additionalInfo: context.additionalInfo,
+        roleplayDesign
+      }
+    })
+
+    // ポイントを構築パネルに設定
+    buildPoints.value = pointsResponse.points
+
+    // 2. 台本生成（vs先生、vsお客さん）
+    buildingStep.value = '台本を生成中...'
+    const scriptsResponse = await $fetch<{
+      teacherScript: string
+      customerScript: string
+    }>('/api/generate-scripts', {
+      method: 'POST',
+      body: {
+        files: context.files.map(f => ({
+          name: f.name,
+          content: f.extractedText,
+          dataType: f.dataType
+        })),
+        goals: context.goals.map(g => goalLabels[g] || g),
+        additionalInfo: context.additionalInfo,
+        points: pointsResponse.points,
+        roleplayDesign
+      }
+    })
+
+    // 生成結果をscriptsに追加（構築パネル用）
+    scripts.value = [
+      { mode: '台本（vs先生）', content: scriptsResponse.teacherScript, expanded: false },
+      { mode: '台本（vsお客さん）', content: scriptsResponse.customerScript, expanded: false }
+    ]
+
+    // 台本行をパースしてBuildPanel用に設定
+    buildScriptLines.value = parseScriptToLines(scriptsResponse.teacherScript)
+
+    // 概要を設定（ポイントから生成）
+    if (pointsResponse.points.length > 0) {
+      buildOverview.value = `このトレーニングでは以下の${pointsResponse.points.length}つのポイントを学習します。`
+    }
+
+    // 3. プロンプト生成（vs先生、フィードバック、vs客シナリオ10パターン）
+    buildingStep.value = 'プロンプトを生成中...'
+    const promptsResponse = await $fetch<{
+      teacherPrompt: string
+      feedbackPrompt: string
+      customerScenarios: string[]
+    }>('/api/generate-roleplay-prompts', {
+      method: 'POST',
+      body: {
+        files: context.files.map(f => ({
+          name: f.name,
+          content: f.extractedText,
+          dataType: f.dataType
+        })),
+        goals: context.goals.map(g => goalLabels[g] || g),
+        additionalInfo: context.additionalInfo,
+        points: pointsResponse.points,
+        roleplayDesign
+      }
+    })
+
+    // プロンプトを更新（プロンプトパネル用）
+    systemPromptsDisplay.value = [
+      { mode: 'vs先生プロンプト', modeKey: 'teacher', content: promptsResponse.teacherPrompt, expanded: false, isGenerating: false },
+      { mode: 'フィードバック基準', modeKey: 'feedback', content: promptsResponse.feedbackPrompt, expanded: false, isGenerating: false },
+      ...promptsResponse.customerScenarios.map((scenario: string, i: number) => ({
+        mode: `vs客シナリオ${i + 1}`,
+        modeKey: `customer-${i + 1}`,
+        content: scenario,
+        expanded: false,
+        isGenerating: false
+      }))
+    ]
+
+    // 構築完了
+    isBuilding.value = false
+    buildingStep.value = ''
+
+    // 完了通知
+    chatAreaRef.value?.notifyGenerationComplete(true)
+
+  } catch (error) {
+    console.error('Error generating roleplay:', error)
+    isBuilding.value = false
+    buildingStep.value = ''
+    chatAreaRef.value?.notifyGenerationComplete(false)
+  }
+}
+
+// ポイントをフォーマット
+const formatPoints = (points: Array<{ question: string; answer: string }>): string => {
+  return points.map((p, i) => `【ポイント${i + 1}】\n問: ${p.question}\n答: ${p.answer}`).join('\n\n')
+}
+
+// 台本テキストをScriptLine配列にパース
+const parseScriptToLines = (scriptText: string): Array<{ speaker: 'self' | 'opponent'; text: string }> => {
+  const lines: Array<{ speaker: 'self' | 'opponent'; text: string }> = []
+  const scriptLines = scriptText.split('\n').filter(line => line.trim())
+
+  for (const line of scriptLines) {
+    // 「自分:」「相手:」「先生:」「お客さん:」などのパターンを検出
+    if (line.match(/^(自分|あなた|営業|練習者)[：:]/)) {
+      lines.push({ speaker: 'self', text: line.replace(/^(自分|あなた|営業|練習者)[：:]/, '').trim() })
+    } else if (line.match(/^(相手|先生|お客さん|顧客|上司)[：:]/)) {
+      lines.push({ speaker: 'opponent', text: line.replace(/^(相手|先生|お客さん|顧客|上司)[：:]/, '').trim() })
+    } else if (lines.length > 0) {
+      // 前の話者の続きとして追加
+      lines[lines.length - 1].text += '\n' + line.trim()
+    }
+  }
+
+  return lines
+}
+
+// ロープレ生成処理（ファイル選択ダイアログから）
 const handleGenerate = async (selectedFiles: FileData[]) => {
   showFileSelectionDialog.value = false
 
@@ -903,8 +1062,6 @@ const handleGenerate = async (selectedFiles: FileData[]) => {
       })
     }
 
-    // 会話の流れタブに切り替え
-    designTab.value = 'script'
   } catch (error) {
     console.error('Error generating roleplay:', error)
 
@@ -1329,9 +1486,52 @@ const handleDrop = (event: DragEvent) => {
 }
 
 .cc-prompt-empty {
-  padding: 20px;
+  padding: 40px 20px;
   text-align: center;
   color: #9ca3af;
+  font-size: 14px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.cc-prompt-empty-hint {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #d1d5db;
+}
+
+.cc-prompt-content-wrapper {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.cc-prompt-content-wrapper .cc-prompt-content-text {
+  flex: 1;
+  margin: 0;
+  padding: 16px;
   font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  margin: 12px;
+  font-family: inherit;
+  color: #374151;
+}
+
+.cc-prompt-content-wrapper .cc-prompt-loading {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
 }
 </style>

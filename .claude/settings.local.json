@@ -24,7 +24,13 @@
       "Bash(npm run build:*)",
       "Bash(netstat:*)",
       "Bash(tasklist:*)",
-      "Bash(npm run generate:*)"
+      "Bash(npm run generate:*)",
+      "Bash(if exist .nuxt rmdir /s /q .nuxt)",
+      "Bash(if exist node_modules.vite rmdir /s /q node_modules.vite)",
+      "Bash(cat:*)",
+      "Bash(node -e:*)",
+      "Bash(timeout:*)",
+      "Bash(cp:*)"
     ],
     "deny": [],
     "ask": []

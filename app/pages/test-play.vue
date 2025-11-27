@@ -197,7 +197,7 @@ onMounted(async () => {
   display: grid;
   grid-template-columns: 280px 1fr 360px;
   gap: 0;
-  height: 100%;
+  height: calc(100vh - 64px);
   background: #f8fafc;
 }
 
@@ -239,6 +239,10 @@ onMounted(async () => {
 }
 
 /* レッスンパネル */
+.lesson-panel {
+  overflow: hidden;
+}
+
 .lesson-list {
   flex: 1;
   overflow-y: auto;
@@ -293,12 +297,20 @@ onMounted(async () => {
 }
 
 /* プレイパネル */
-.play-area-wrapper {
-  flex: 1;
+.play-panel {
   overflow: hidden;
 }
 
+.play-area-wrapper {
+  flex: 1;
+  overflow-y: auto;
+}
+
 /* 結果パネル */
+.result-panel {
+  overflow: hidden;
+}
+
 .result-content {
   flex: 1;
   overflow-y: auto;

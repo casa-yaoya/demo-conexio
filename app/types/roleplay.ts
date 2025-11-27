@@ -98,3 +98,11 @@ export interface PracticeScript {
   objectives: string[]
   tips: string[]
 }
+
+// ロープレ構築コンテキスト
+export interface RoleplayContext {
+  files: FileData[]
+  goals: string[]
+  additionalInfo: string[]
+  chatHistory: ChatMessage[]
+}
