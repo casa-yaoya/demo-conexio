@@ -724,14 +724,19 @@ export const useDemoData = () => {
       avgScore: Math.round(stats.totalScore / stats.totalPlays),
       totalPlayTime: Math.round(stats.totalPlayTime),
       totalSpeechTime: Math.round(stats.totalSpeechTime),
-      // 月別プレイ数
+      // 月別プレイ数（1月〜12月）
+      playsJan: stats.monthlyPlays.get(1) || 0,
+      playsFeb: stats.monthlyPlays.get(2) || 0,
+      playsMar: stats.monthlyPlays.get(3) || 0,
+      playsApr: stats.monthlyPlays.get(4) || 0,
       playsMay: stats.monthlyPlays.get(5) || 0,
       playsJun: stats.monthlyPlays.get(6) || 0,
       playsJul: stats.monthlyPlays.get(7) || 0,
       playsAug: stats.monthlyPlays.get(8) || 0,
       playsSep: stats.monthlyPlays.get(9) || 0,
       playsOct: stats.monthlyPlays.get(10) || 0,
-      playsNov: stats.monthlyPlays.get(11) || 0
+      playsNov: stats.monthlyPlays.get(11) || 0,
+      playsDec: stats.monthlyPlays.get(12) || 0
     }))
   }
 
@@ -753,6 +758,10 @@ export const useDemoData = () => {
         group: item.group,
         totalScore: item.avgScore * item.totalPlays,
         totalPlays: item.totalPlays,
+        playsJan: item.playsJan,
+        playsFeb: item.playsFeb,
+        playsMar: item.playsMar,
+        playsApr: item.playsApr,
         playsMay: item.playsMay,
         playsJun: item.playsJun,
         playsJul: item.playsJul,
@@ -760,6 +769,7 @@ export const useDemoData = () => {
         playsSep: item.playsSep,
         playsOct: item.playsOct,
         playsNov: item.playsNov,
+        playsDec: item.playsDec,
         clearCount: item.clearCount,
         avgScore: item.avgScore,
         totalPlayTime: item.totalPlayTime,

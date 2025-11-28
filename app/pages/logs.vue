@@ -294,10 +294,22 @@ const handleFiltersUpdate = (filters: {
   loadLogData()
 }
 
-// 日時フォーマット
+// 日時フォーマット（画面表示用）
 const formatDateTime = (dateString: string | Date): string => {
   const date = typeof dateString === 'string' ? new Date(dateString) : dateString
   return date.toLocaleString('ja-JP')
+}
+
+// 日時フォーマット（CSV出力用 - Excel互換形式）
+const formatDateTimeForCSV = (dateString: string | Date): string => {
+  const date = typeof dateString === 'string' ? new Date(dateString) : dateString
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  const h = String(date.getHours()).padStart(2, '0')
+  const min = String(date.getMinutes()).padStart(2, '0')
+  const s = String(date.getSeconds()).padStart(2, '0')
+  return `${y}/${m}/${d} ${h}:${min}:${s}`
 }
 
 // ページ変更
@@ -346,13 +358,7 @@ const downloadCSV = () => {
       .map(col => {
         const value = (session as any)[col.key]
         if (col.key === 'date') {
-          return formatDateTime(value)
-        }
-        if (col.key === 'level') {
-          return `Lv.${value}`
-        }
-        if (col.key === 'speechTime' || col.key === 'playTime') {
-          return `${value}s`
+          return formatDateTimeForCSV(value)
         }
         return value
       })

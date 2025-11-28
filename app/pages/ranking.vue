@@ -88,26 +88,8 @@
                   <th v-if="visibleColumns.totalPlays" class="sortable" @click="toggleSort('totalPlays')">
                     <span class="th-content">プレイ数<span class="sort-icon" :class="{ active: isSortedColumn('totalPlays') }">{{ getSortIcon('totalPlays') }}</span></span>
                   </th>
-                  <th v-if="visibleColumns.playsMay" class="sortable" @click="toggleSort('playsMay')">
-                    <span class="th-content">5月<span class="sort-icon" :class="{ active: isSortedColumn('playsMay') }">{{ getSortIcon('playsMay') }}</span></span>
-                  </th>
-                  <th v-if="visibleColumns.playsJun" class="sortable" @click="toggleSort('playsJun')">
-                    <span class="th-content">6月<span class="sort-icon" :class="{ active: isSortedColumn('playsJun') }">{{ getSortIcon('playsJun') }}</span></span>
-                  </th>
-                  <th v-if="visibleColumns.playsJul" class="sortable" @click="toggleSort('playsJul')">
-                    <span class="th-content">7月<span class="sort-icon" :class="{ active: isSortedColumn('playsJul') }">{{ getSortIcon('playsJul') }}</span></span>
-                  </th>
-                  <th v-if="visibleColumns.playsAug" class="sortable" @click="toggleSort('playsAug')">
-                    <span class="th-content">8月<span class="sort-icon" :class="{ active: isSortedColumn('playsAug') }">{{ getSortIcon('playsAug') }}</span></span>
-                  </th>
-                  <th v-if="visibleColumns.playsSep" class="sortable" @click="toggleSort('playsSep')">
-                    <span class="th-content">9月<span class="sort-icon" :class="{ active: isSortedColumn('playsSep') }">{{ getSortIcon('playsSep') }}</span></span>
-                  </th>
-                  <th v-if="visibleColumns.playsOct" class="sortable" @click="toggleSort('playsOct')">
-                    <span class="th-content">10月<span class="sort-icon" :class="{ active: isSortedColumn('playsOct') }">{{ getSortIcon('playsOct') }}</span></span>
-                  </th>
-                  <th v-if="visibleColumns.playsNov" class="sortable" @click="toggleSort('playsNov')">
-                    <span class="th-content">11月<span class="sort-icon" :class="{ active: isSortedColumn('playsNov') }">{{ getSortIcon('playsNov') }}</span></span>
+                  <th v-for="monthCol in visibleMonthColumns" :key="monthCol.key" class="sortable" @click="toggleSort(monthCol.key)">
+                    <span class="th-content">{{ monthCol.label }}<span class="sort-icon" :class="{ active: isSortedColumn(monthCol.key) }">{{ getSortIcon(monthCol.key) }}</span></span>
                   </th>
                   <th v-if="visibleColumns.clearCount" class="sortable" @click="toggleSort('clearCount')">
                     <span class="th-content">クリア数<span class="sort-icon" :class="{ active: isSortedColumn('clearCount') }">{{ getSortIcon('clearCount') }}</span></span>
@@ -134,13 +116,7 @@
                   <td v-if="visibleColumns.group">{{ item.group }}</td>
                   <td v-if="visibleColumns.totalScore">{{ item.totalScore }}点</td>
                   <td v-if="visibleColumns.totalPlays">{{ item.totalPlays }}回</td>
-                  <td v-if="visibleColumns.playsMay">{{ item.playsMay }}回</td>
-                  <td v-if="visibleColumns.playsJun">{{ item.playsJun }}回</td>
-                  <td v-if="visibleColumns.playsJul">{{ item.playsJul }}回</td>
-                  <td v-if="visibleColumns.playsAug">{{ item.playsAug }}回</td>
-                  <td v-if="visibleColumns.playsSep">{{ item.playsSep }}回</td>
-                  <td v-if="visibleColumns.playsOct">{{ item.playsOct }}回</td>
-                  <td v-if="visibleColumns.playsNov">{{ item.playsNov }}回</td>
+                  <td v-for="monthCol in visibleMonthColumns" :key="monthCol.key">{{ item[monthCol.key] }}回</td>
                   <td v-if="visibleColumns.clearCount">{{ item.clearCount }}回</td>
                   <td v-if="visibleColumns.avgScore">{{ item.avgScore }}点</td>
                   <td v-if="visibleColumns.totalPlayTime">{{ formatTime(item.totalPlayTime) }}</td>
@@ -223,28 +199,38 @@ const sortedData = computed(() => {
   }))
 })
 
+// 月別列の定義（1月〜12月）
+const monthColumns = [
+  { key: 'playsJan', label: '1月', month: 1 },
+  { key: 'playsFeb', label: '2月', month: 2 },
+  { key: 'playsMar', label: '3月', month: 3 },
+  { key: 'playsApr', label: '4月', month: 4 },
+  { key: 'playsMay', label: '5月', month: 5 },
+  { key: 'playsJun', label: '6月', month: 6 },
+  { key: 'playsJul', label: '7月', month: 7 },
+  { key: 'playsAug', label: '8月', month: 8 },
+  { key: 'playsSep', label: '9月', month: 9 },
+  { key: 'playsOct', label: '10月', month: 10 },
+  { key: 'playsNov', label: '11月', month: 11 },
+  { key: 'playsDec', label: '12月', month: 12 }
+]
+
 // 列の定義
-const columnDefinitions = [
+const columnDefinitions = computed(() => [
   { key: 'rank', label: '順位' },
   { key: 'player', label: 'プレイヤー' },
   { key: 'org', label: '組織' },
   { key: 'group', label: 'グループ' },
   { key: 'totalScore', label: '総スコア' },
   { key: 'totalPlays', label: 'プレイ数' },
-  { key: 'playsMay', label: '5月' },
-  { key: 'playsJun', label: '6月' },
-  { key: 'playsJul', label: '7月' },
-  { key: 'playsAug', label: '8月' },
-  { key: 'playsSep', label: '9月' },
-  { key: 'playsOct', label: '10月' },
-  { key: 'playsNov', label: '11月' },
+  ...monthColumns,
   { key: 'clearCount', label: 'クリア数' },
   { key: 'avgScore', label: '平均スコア' },
   { key: 'totalPlayTime', label: 'プレイ時間' },
   { key: 'totalSpeechTime', label: '発話時間' }
-]
+])
 
-// 列の表示状態（組織とグループはデフォルトでオフ）
+// 列の表示状態（組織とグループはデフォルトでオフ、月別列は初期状態で全てオフ）
 const visibleColumns = reactive<Record<string, boolean>>({
   rank: true,
   player: true,
@@ -252,17 +238,27 @@ const visibleColumns = reactive<Record<string, boolean>>({
   group: false,
   totalScore: true,
   totalPlays: true,
-  playsMay: true,
-  playsJun: true,
-  playsJul: true,
-  playsAug: true,
-  playsSep: true,
-  playsOct: true,
-  playsNov: true,
+  playsJan: false,
+  playsFeb: false,
+  playsMar: false,
+  playsApr: false,
+  playsMay: false,
+  playsJun: false,
+  playsJul: false,
+  playsAug: false,
+  playsSep: false,
+  playsOct: false,
+  playsNov: false,
+  playsDec: false,
   clearCount: true,
   avgScore: true,
   totalPlayTime: true,
   totalSpeechTime: true
+})
+
+// 表示する月別列（visibleColumnsでフィルタリング）
+const visibleMonthColumns = computed(() => {
+  return monthColumns.filter(col => visibleColumns[col.key])
 })
 
 // 表示列数を計算
@@ -275,6 +271,43 @@ const toggleColumn = (key: string) => {
   visibleColumns[key] = !visibleColumns[key]
 }
 
+// 期間フィルターに基づいて月別列の表示を更新
+const updateMonthColumnsVisibility = (dateFrom: Date | null, dateTo: Date | null) => {
+  // まず全ての月別列を非表示に
+  monthColumns.forEach(col => {
+    visibleColumns[col.key] = false
+  })
+
+  // 期間が指定されていない場合は全ての月を非表示のまま
+  if (!dateFrom && !dateTo) {
+    return
+  }
+
+  // 期間内の月を表示
+  const startDate = dateFrom || new Date(2000, 0, 1)
+  const endDate = dateTo || new Date(2100, 11, 31)
+
+  // 開始月と終了月を取得
+  const startMonth = startDate.getMonth() + 1 // 1-12
+  const endMonth = endDate.getMonth() + 1 // 1-12
+  const startYear = startDate.getFullYear()
+  const endYear = endDate.getFullYear()
+
+  // 同じ年内の場合
+  if (startYear === endYear) {
+    monthColumns.forEach(col => {
+      if (col.month >= startMonth && col.month <= endMonth) {
+        visibleColumns[col.key] = true
+      }
+    })
+  } else {
+    // 年をまたぐ場合は全ての月を表示
+    monthColumns.forEach(col => {
+      visibleColumns[col.key] = true
+    })
+  }
+}
+
 // フィルター更新ハンドラ
 const handleFiltersUpdate = (filters: {
   lessons?: string[]
@@ -284,6 +317,8 @@ const handleFiltersUpdate = (filters: {
   dateTo: Date | null
 }) => {
   currentFilters.value = filters
+  // 期間フィルターに基づいて月別列の表示を更新
+  updateMonthColumnsVisibility(filters.dateFrom, filters.dateTo)
   updateRankingData()
 }
 
@@ -327,7 +362,7 @@ const formatTime = (seconds: number | undefined) => {
   return result
 }
 
-// 時間フォーマット（秒 → hh:mm:ss形式）- CSV出力用
+// 時間フォーマット（秒 → h:mm:ss形式）- CSV出力用（単位なし）
 const formatTimeForCSV = (seconds: number | undefined) => {
   if (!seconds || seconds === 0) return '0:00:00'
   const hours = Math.floor(seconds / 3600)
@@ -338,28 +373,17 @@ const formatTimeForCSV = (seconds: number | undefined) => {
 
 // CSVダウンロード
 const downloadCSV = () => {
-  const headers = columnDefinitions
+  const headers = columnDefinitions.value
     .filter(col => visibleColumns[col.key])
     .map(col => col.label)
 
   const rows = sortedData.value.map((item: any) => {
-    return columnDefinitions
+    return columnDefinitions.value
       .filter(col => visibleColumns[col.key])
       .map(col => {
         const value = item[col.key]
-        if (col.key === 'rank') {
-          return `${value}位`
-        }
         if (col.key === 'totalPlayTime' || col.key === 'totalSpeechTime') {
           return formatTimeForCSV(value)
-        }
-        // 回数系の列には「回」を付ける
-        if (['totalPlays', 'playsMay', 'playsJun', 'playsJul', 'playsAug', 'playsSep', 'playsOct', 'playsNov', 'clearCount'].includes(col.key)) {
-          return `${value}回`
-        }
-        // スコア系の列には「点」を付ける
-        if (['totalScore', 'avgScore'].includes(col.key)) {
-          return `${value}点`
         }
         return value
       })

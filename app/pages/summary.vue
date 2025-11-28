@@ -596,8 +596,8 @@ const downloadCSVWithPlayerDetails = () => {
               String(player.clearCount),
               '-',
               '-',
-              `${player.avgScore}点`,
-              `${player.bestScore}点`,
+              player.avgScore,
+              player.bestScore,
               formatTimeForCSV(player.totalPlayTime),
               formatTimeForCSV(player.avgPlayTime)
             ])
@@ -617,8 +617,8 @@ const downloadCSVWithPlayerDetails = () => {
         String(item.clearCount || 0),
         String(item.uniquePlayerCount || 0),
         String(item.fivePlusPlayerCount || 0),
-        `${item.avgScore}点`,
-        `${item.bestScore}点`,
+        item.avgScore,
+        item.bestScore,
         formatTimeForCSV(item.totalPlayTime),
         formatTimeForCSV(item.avgPlayTime)
       ])
@@ -681,7 +681,7 @@ const formatTime = (seconds: number | undefined) => {
   return result
 }
 
-// 時間フォーマット（秒 → hh:mm:ss形式）- CSV出力用
+// 時間フォーマット（秒 → h:mm:ss形式）- CSV出力用（単位なし）
 const formatTimeForCSV = (seconds: number | undefined) => {
   if (!seconds || seconds === 0) return '0:00:00'
   const hours = Math.floor(seconds / 3600)
