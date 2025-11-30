@@ -39,7 +39,10 @@
       "Bash(\"/c/Users/naoya/AppData/Local/Programs/GitHub CLI/gh.exe\" --version)",
       "Bash(ipconfig:*)",
       "Bash(ip addr:*)",
-      "Bash(cmd //c \"taskkill /F /IM node.exe\")"
+      "Bash(cmd //c \"taskkill /F /IM node.exe\")",
+      "Bash(del \"c:\\Users\\naoya\\naretore-nuxt\\server\\utils\\anthropic.ts\")",
+      "Bash(if exist \"c:\\Users\\naoya\\naretore-nuxt\\.nuxt\" rmdir /s /q \"c:\\Users\\naoya\\naretore-nuxt\\.nuxt\")",
+      "Bash(npx nuxi prepare)"
     ],
     "deny": [],
     "ask": []

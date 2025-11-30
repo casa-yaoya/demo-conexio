@@ -1,27 +1,29 @@
-// Roleplay Chat API - OpenAI Responses API を使用したロープレ構築チャット
-// 処理ID: API-CHAT-002
+/**
+ * エージェントチャット API - Responses API を使用
+ * 処理ID: API-AGENT-001
+ */
 
 import type { ChatMessage } from '~/types/roleplay'
 import { runAgent, type AgentConfig, type AgentTool } from '../../utils/openai-responses'
 import { loadPrompt } from '../../utils/prompt'
 
-interface RoleplayChatRequest {
+interface AgentChatRequest {
   messages: ChatMessage[]
+  agentType: 'design-assistant' | 'script-generator' | 'content-analyzer'
   currentDesign?: any
   files?: Array<{ name: string; summary?: string; content?: string }>
-  previousResponseId?: string  // 会話継続用
-  useAgent?: boolean           // Responses API を使用するかどうか
-  enableWebSearch?: boolean    // Web検索を有効にするか
+  previousResponseId?: string
+  enableWebSearch?: boolean
 }
 
 export default defineEventHandler(async (event) => {
-  const body = await readBody<RoleplayChatRequest>(event)
+  const body = await readBody<AgentChatRequest>(event)
   const {
     messages,
+    agentType = 'design-assistant',
     currentDesign,
     files = [],
     previousResponseId,
-    useAgent = true,  // デフォルトで Responses API を使用
     enableWebSearch = false
   } = body
 
@@ -33,25 +35,12 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    // エージェント用プロンプトを読み込み（Responses API用）
-    let instructions = await loadPrompt('agent-design-assistant')
+    // エージェント用プロンプトを読み込み
+    let instructions = await loadPrompt(`agent-${agentType}`)
 
-    // フォールバック（従来のプロンプトまたはデフォルト）
+    // フォールバック
     if (!instructions) {
-      instructions = await loadPrompt('design-assistant')
-    }
-    if (!instructions) {
-      instructions = `あなたはロープレ（ロールプレイング）学習コンテンツを作成するアシスタントです。
-
-## あなたの役割
-- ユーザーの要望を聞いて、効果的なロープレ設計を支援する
-- 状況設定、相手役の設定、ミッション設定などを一緒に考える
-- ユーザーがアップロードしたファイルの内容を活用してロープレを設計する
-
-## コミュニケーションスタイル
-- 親しみやすく、プロフェッショナルなトーンで話す
-- 質問は一度に多くせず、段階的に情報を引き出す
-- 具体的な例を挙げて分かりやすく説明する`
+      instructions = getDefaultInstructions(agentType)
     }
 
     // コンテキスト情報を追加
@@ -81,7 +70,7 @@ export default defineEventHandler(async (event) => {
       content: msg.content
     }))
 
-    // Responses API でエージェントを実行
+    // エージェントを実行
     const response = await runAgent(
       agentConfig,
       input,
@@ -90,15 +79,37 @@ export default defineEventHandler(async (event) => {
 
     return {
       content: response.content,
-      responseId: response.responseId,  // 会話継続用に返す
+      responseId: response.responseId,
       toolResults: response.toolResults
     }
   } catch (error: any) {
-    console.error('Roleplay Chat API Error:', error)
+    console.error('Agent Chat API Error:', error)
     throw createError({
       statusCode: 500,
-      statusMessage: 'ロープレチャット処理中にエラーが発生しました',
+      statusMessage: 'エージェント処理中にエラーが発生しました',
       message: error.message
     })
   }
 })
+
+/**
+ * デフォルトの instructions を取得
+ */
+function getDefaultInstructions(agentType: string): string {
+  switch (agentType) {
+    case 'design-assistant':
+      return `あなたはロープレ（ロールプレイング）学習コンテンツを作成するアシスタントです。
+ユーザーの要望を聞いて、効果的なロープレ設計を支援してください。`
+
+    case 'script-generator':
+      return `あなたはロープレ用の台本を生成するアシスタントです。
+与えられた設計に基づいて、効果的な学習台本を作成してください。`
+
+    case 'content-analyzer':
+      return `あなたは研修資料を分析するアシスタントです。
+アップロードされたファイルから、ロープレ設計に活用できる情報を抽出してください。`
+
+    default:
+      return `あなたはAIアシスタントです。ユーザーをサポートしてください。`
+  }
+}

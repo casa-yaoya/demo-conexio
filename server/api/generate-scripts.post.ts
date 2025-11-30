@@ -1,4 +1,5 @@
 import { getOpenAIClient } from '../utils/openai'
+import type { ResponseFormatJSONSchema } from 'openai/resources/shared'
 
 interface GenerateScriptsRequest {
   files: Array<{
@@ -17,6 +18,60 @@ interface GenerateScriptsResponse {
   customerScript: string
 }
 
+// 台本の行形式
+interface ScriptLine {
+  speaker: 'self' | 'opponent' | 'narrator'
+  text: string
+}
+
+// Structured Outputs用JSON Schema（台本）
+const scriptResponseSchema: ResponseFormatJSONSchema = {
+  type: 'json_schema',
+  json_schema: {
+    name: 'script_response',
+    strict: true,
+    schema: {
+      type: 'object',
+      properties: {
+        lines: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              speaker: {
+                type: 'string',
+                enum: ['self', 'opponent', 'narrator'],
+                description: '話者：self（ユーザー/練習者）、opponent（相手/先生/お客様）、narrator（ナレーター/解説）'
+              },
+              text: {
+                type: 'string',
+                description: 'セリフまたは解説文'
+              }
+            },
+            required: ['speaker', 'text'],
+            additionalProperties: false
+          }
+        }
+      },
+      required: ['lines'],
+      additionalProperties: false
+    }
+  }
+}
+
+// 台本行をテキストに変換
+function linesToText(lines: ScriptLine[], opponentLabel: string): string {
+  return lines.map(line => {
+    if (line.speaker === 'self') {
+      return `ユーザー: ${line.text}`
+    } else if (line.speaker === 'opponent') {
+      return `${opponentLabel}: ${line.text}`
+    } else {
+      return `ナレーター: ${line.text}`
+    }
+  }).join('\n')
+}
+
 export default defineEventHandler(async (event): Promise<GenerateScriptsResponse> => {
   const body = await readBody<GenerateScriptsRequest>(event)
   const { files = [], goals = [], additionalInfo = [], points = [], roleplayDesign } = body
@@ -32,21 +87,21 @@ export default defineEventHandler(async (event): Promise<GenerateScriptsResponse
     const additionalText = additionalInfo.length > 0 ? additionalInfo.join('\n') : '特になし'
     const pointsText = points.map((p, i) => `${i + 1}. 問: ${p.question} / 答: ${p.answer}`).join('\n')
 
-    // vs先生 台本生成
+    // vs先生 台本生成（Structured Outputs使用）
     const teacherResponse = await openai.chat.completions.create({
       model: 'gpt-4o',
       max_tokens: 4096,
+      response_format: scriptResponseSchema,
       messages: [
         {
           role: 'system',
           content: `あなたはロールプレイ研修の台本作成専門家です。
 「先生とユーザー（学習者）」の対話形式の台本を作成してください。
 
-【形式】
-先生: 〇〇〇
-ユーザー: 〇〇〇
-先生: 〇〇〇
-...
+【話者の指定】
+- opponent: 先生のセリフ
+- self: ユーザー（学習者）のセリフ
+- narrator: シーンの説明や注釈
 
 【特徴】
 - 先生がポイントを質問形式で確認していく
@@ -75,21 +130,21 @@ ${additionalText}
       ]
     })
 
-    // vsお客さん 台本生成
+    // vsお客さん 台本生成（Structured Outputs使用）
     const customerResponse = await openai.chat.completions.create({
       model: 'gpt-4o',
       max_tokens: 4096,
+      response_format: scriptResponseSchema,
       messages: [
         {
           role: 'system',
           content: `あなたはロールプレイ研修の台本作成専門家です。
 「お客さんとユーザー（営業/接客担当）」の対話形式の台本を作成してください。
 
-【形式】
-お客さん: 〇〇〇
-ユーザー: 〇〇〇
-お客さん: 〇〇〇
-...
+【話者の指定】
+- opponent: お客さんのセリフ
+- self: ユーザー（営業/接客担当）のセリフ
+- narrator: シーンの説明や注釈
 
 【特徴】
 - リアルな顧客とのやり取りを再現
@@ -118,8 +173,29 @@ ${additionalText}
       ]
     })
 
-    const teacherScript = teacherResponse.choices[0]?.message?.content || generateFallbackTeacherScript(points)
-    const customerScript = customerResponse.choices[0]?.message?.content || generateFallbackCustomerScript(points)
+    // Structured Outputsの結果をパースしてテキストに変換
+    let teacherScript = generateFallbackTeacherScript(points)
+    let customerScript = generateFallbackCustomerScript(points)
+
+    try {
+      const teacherContent = teacherResponse.choices[0]?.message?.content
+      if (teacherContent) {
+        const parsed = JSON.parse(teacherContent) as { lines: ScriptLine[] }
+        teacherScript = linesToText(parsed.lines, '先生')
+      }
+    } catch (e) {
+      console.error('Teacher script parse error:', e)
+    }
+
+    try {
+      const customerContent = customerResponse.choices[0]?.message?.content
+      if (customerContent) {
+        const parsed = JSON.parse(customerContent) as { lines: ScriptLine[] }
+        customerScript = linesToText(parsed.lines, 'お客さん')
+      }
+    } catch (e) {
+      console.error('Customer script parse error:', e)
+    }
 
     return {
       teacherScript,

@@ -1,14 +1,10 @@
 <template>
   <UModal v-model:open="modalOpen">
     <template #header>
-      <h3 class="text-xl font-semibold text-gray-900">ロープレ生成</h3>
+      <h3 class="text-xl font-semibold text-gray-900">参照ファイル選択（任意）</h3>
     </template>
 
     <template #body>
-      <div class="file-dialog-description">
-        参照するファイルを選択してください（任意）
-      </div>
-
       <div v-if="files.length > 0" class="file-list">
         <div
           v-for="file in files"
@@ -36,19 +32,24 @@
     </template>
 
     <template #footer>
-      <div class="flex justify-end gap-3">
+      <div class="dialog-footer">
         <UButton
           variant="outline"
           color="neutral"
+          size="lg"
+          class="dialog-cancel-button"
           @click="close"
         >
           キャンセル
         </UButton>
         <UButton
           color="primary"
+          size="lg"
+          class="dialog-generate-button"
           @click="generate"
         >
-          生成開始
+          <UIcon name="i-lucide-rocket" class="dialog-button-icon" />
+          構築開始
         </UButton>
       </div>
     </template>
@@ -119,12 +120,6 @@ watch(() => props.isOpen, (isOpen) => {
 </script>
 
 <style scoped>
-.file-dialog-description {
-  font-size: 0.875rem;
-  color: #4b5563;
-  margin-bottom: 1rem;
-}
-
 .file-list {
   display: flex;
   flex-direction: column;
@@ -191,5 +186,42 @@ watch(() => props.isOpen, (isOpen) => {
 .no-files-hint {
   font-size: 0.875rem;
   margin-top: 0.5rem;
+}
+
+/* フッターボタン */
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  width: 100%;
+}
+
+.dialog-cancel-button {
+  height: 48px;
+  min-width: 120px;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 10px;
+}
+
+.dialog-generate-button {
+  height: 48px;
+  min-width: 160px;
+  font-size: 15px;
+  font-weight: 700;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+  box-shadow: 0 4px 14px rgba(14, 165, 233, 0.4);
+  transition: all 0.2s;
+}
+
+.dialog-generate-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(14, 165, 233, 0.5);
+}
+
+.dialog-button-icon {
+  font-size: 18px;
+  margin-right: 6px;
 }
 </style>

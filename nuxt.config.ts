@@ -54,7 +54,7 @@ export default defineNuxtConfig({
       websocket: true
     },
     externals: {
-      inline: ['xlsx', 'pdf-parse']
+      inline: ['xlsx']
     }
   },
 

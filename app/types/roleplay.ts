@@ -1,14 +1,21 @@
 // Roleplay design and course management types
 
+import type { SeparableInfo } from './file'
+
 export interface FileData {
   name: string
-  dataType: string  // 見本データ, 教材データ, 自社データ, 顧客データ, その他, 未分類
+  dataType: string  // 対話データ, 商品データ, 教材データ, 顧客データ, その他, 未分類
   type?: string     // MIME type
-  extractedText?: string
-  content?: string
+  extractedText?: string      // 全データ（解析時に保存）
+  usedContent?: string        // 利用部分（範囲選択後に設定）
+  unusedContent?: string      // 不要部分（範囲選択後に設定）
+  content?: string            // 互換性のため維持（usedContentと同じ）
   summary?: string
   size: number
   uploadDate: string
+  separable?: SeparableInfo   // 分離可能項目情報
+  selectedRange?: string[]    // ユーザーが選択した範囲（「全部」の場合は空配列）
+  goals?: string[]            // このファイルに対する求めるゴール
 }
 
 export interface ChatMessage {
@@ -28,9 +35,9 @@ export interface RoleplayDesign {
 }
 
 export interface Point {
-  question: string
-  criteria: string
-  example: string
+  question: string        // 質問テキスト
+  criteria: string[]      // 正解基準（リスト）
+  correctAnswer: string   // 正答例（口語的な表現）
 }
 
 export interface Category {

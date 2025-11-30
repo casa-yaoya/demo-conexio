@@ -8,7 +8,7 @@
 - **言語**: TypeScript (strict mode)
 - **スタイリング**: Tailwind CSS v4
 - **AI API**: Anthropic Claude API, OpenAI Realtime API
-- **ファイル処理**: pdf-parse, xlsx (SheetJS)
+- **ファイル処理**: xlsx (SheetJS), OpenAI Vision API (PDF解析)
 
 ## 完了済み実装
 
@@ -172,7 +172,10 @@ naretore-nuxt/
 - **問題**: ESMローダーが`C:\...`形式を拒否
 - **解決済み**:
   - `xlsx`: `import { read, utils } from 'xlsx'` + Nitro externals inline
-  - `pdf-parse`: 動的import `await import('pdf-parse').then(m => m.default || m)`
+
+### PDF解析
+- **メタデータ抽出**: `server/utils/fileParser.ts` - ページ数・サイズのみ
+- **内容解析**: OpenAI Vision API (`/api/analyze`) - gpt-4oでPDF内容を抽出
 
 ### Nuxt設定 (nuxt.config.ts)
 ```typescript
@@ -182,7 +185,7 @@ vite: {
 },
 nitro: {
   experimental: { websocket: true },
-  externals: { inline: ['xlsx', 'pdf-parse'] }
+  externals: { inline: ['xlsx'] }
 }
 ```
 

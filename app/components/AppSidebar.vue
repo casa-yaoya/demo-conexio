@@ -151,15 +151,15 @@ const handleLogout = () => {
 .nav-items {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 /* ナビゲーションボタン - UButton をカスタマイズ */
 .nav-item {
-  gap: 12px;
-  padding: 12px 16px;
-  border-radius: 8px;
-  font-size: 14px;
+  gap: 14px;
+  padding: 16px 20px;
+  border-radius: 10px;
+  font-size: 16px;
   font-weight: 500;
   color: #475569;
 }
@@ -178,7 +178,7 @@ const handleLogout = () => {
 }
 
 .nav-icon {
-  font-size: 20px;
+  font-size: 24px;
   flex-shrink: 0;
   opacity: 0.8;
 }
@@ -189,6 +189,7 @@ const handleLogout = () => {
 
 .nav-label {
   flex: 1;
+  text-align: left;
 }
 
 /* サイドバーフッター */

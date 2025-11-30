@@ -1,4 +1,5 @@
 import { getOpenAIClient } from '../utils/openai'
+import type { ResponseFormatJSONSchema } from 'openai/resources/shared'
 
 interface GeneratePointsRequest {
   files: Array<{
@@ -11,13 +12,299 @@ interface GeneratePointsRequest {
   roleplayDesign?: any
 }
 
+// ポイントのカテゴリ
+type PointCategory = 'knowledge' | 'mindset' | 'speaking'
+
+// ポイント形式
 interface PointItem {
+  category: PointCategory
   question: string
-  answer: string
+  point: string
+  correctAnswer: string
 }
 
 interface GeneratePointsResponse {
+  overview: string
   points: PointItem[]
+}
+
+// OpenAI Structured Outputs用のJSON Schema
+const pointsResponseSchema: ResponseFormatJSONSchema = {
+  type: 'json_schema',
+  json_schema: {
+    name: 'points_response',
+    strict: true,
+    schema: {
+      type: 'object',
+      properties: {
+        overview: {
+          type: 'string',
+          description: 'トレーニング全体の目的と内容のサマリー（200文字以内）'
+        },
+        points: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              category: {
+                type: 'string',
+                enum: ['knowledge', 'mindset', 'speaking'],
+                description: 'ポイントのカテゴリ：knowledge（知識）, mindset（考え方）, speaking（話し方）'
+              },
+              question: {
+                type: 'string',
+                description: '直接的で具体的な質問。「〜を知ってる？」ではなく「VR1台でいくら？」のような形式'
+              },
+              point: {
+                type: 'string',
+                description: '箇条書き形式で整理されたポイント（・で始まる行）'
+              },
+              correctAnswer: {
+                type: 'string',
+                description: 'お客様に話すような丁寧な敬語表現での回答例'
+              }
+            },
+            required: ['category', 'question', 'point', 'correctAnswer'],
+            additionalProperties: false
+          }
+        }
+      },
+      required: ['overview', 'points'],
+      additionalProperties: false
+    }
+  }
+}
+
+// ゴール別プロンプト定義
+type GoalType = 'ForMemorize' | 'ForUnderstanding' | 'ForHearing' | 'ForOutReturn' | 'ForSpeaking'
+
+// ゴールラベルからGoalTypeへのマッピング
+const goalLabelToType: Record<string, GoalType> = {
+  '台本の暗記': 'ForMemorize',
+  '正確な説明や質問': 'ForUnderstanding',
+  'ヒアリング': 'ForHearing',
+  '質疑や反論への切り返し': 'ForOutReturn',
+  '話し方': 'ForSpeaking'
+}
+
+// 各項目の説明（プロンプト内で使用）
+const fieldGuidelines = `
+【各項目の作成ガイドライン】
+- overview: トレーニング全体の目的と内容を簡潔にまとめたサマリー。200文字以内で記述。
+- category: "knowledge"（知識）, "mindset"（考え方）, "speaking"（話し方）のいずれか
+- question（問いかけ）:
+  ✗NG例：「〜を知ってる？」「〜を覚えている？」のような間接的な質問
+  ○OK例：「VR1台でいくら？」「このプランの特徴は？」のような直接的で具体的な質問
+  →お客様から聞かれそうな質問、または知っておくべき事項を端的に問う形式
+- point（ポイント）:
+  →必ず箇条書き形式で情報を整理して記述（・で始まる行）
+  →セリフ形式や長文ではなく、重要な情報を簡潔にまとめる
+- correctAnswer（正答例）:
+  →お客様に説明している口調で、質問に対して丁寧に答える形
+  →実際の営業トークのような自然な敬語表現で記述`
+
+// ゴール別システムプロンプト
+const goalPrompts: Record<GoalType, string> = {
+  // ① 台本の暗記
+  ForMemorize: `あなたはロールプレイ研修の専門家です。
+与えられた資料から、「台本の暗記」を目的としたトレーニングポイントを抽出してください。
+
+【台本暗記トレーニングの目的】
+- 正確なセリフを覚えて、淀みなく言えるようになること
+- 話す順序、フレーズの正確な再現を重視
+- 丸暗記すべき重要なセリフや定型句を抽出
+
+【重視するポイント】
+1. knowledge（知識）：暗記すべき正確なセリフや定型句
+   - 挨拶文、商品説明の定型フレーズ、クロージングトークなど
+   - 一字一句正確に言えることが重要なもの
+   - correctAnswerは「このまま言う」べき正確なセリフ
+
+2. mindset（考え方）：台本を覚える際のコツや心構え
+   - なぜそのフレーズが効果的なのか
+   - 暗記のコツや練習方法
+
+3. speaking（話し方）：セリフを言う際の声のトーンやタイミング
+   - 抑揚、間の取り方、声の大きさ
+   - 感情の込め方
+
+【出力の特徴】
+- knowledgeカテゴリを多めに（5個以上推奨）
+- correctAnswerは「そのまま言うべき正確なセリフ」として記述
+- questionは「〇〇の場面で何と言う？」「最初に言うべきことは？」のような形式
+${fieldGuidelines}`,
+
+  // ② 正確な説明や質問
+  ForUnderstanding: `あなたはロールプレイ研修の専門家です。
+与えられた資料から、「正確な説明や質問」を目的としたトレーニングポイントを抽出してください。
+
+【正確な説明トレーニングの目的】
+- 商品・サービスの特徴を正確に理解し説明できること
+- お客様の質問に対して、正しい情報で回答できること
+- 数字やスペック、条件などを間違えずに伝えること
+
+【重視するポイント】
+1. knowledge（知識）：正確に覚えるべき情報
+   - 価格、機能、スペック、条件などの具体的数値
+   - 商品・サービスの特徴と他社との違い
+   - よくある質問とその正確な回答
+   - 【重要】与えられた情報のみでまとめ、推測を入れない
+
+2. mindset（考え方）：正確に説明するための心構え
+   - わからないことは調べる姿勢
+   - 曖昧な回答を避ける意識
+
+3. speaking（話し方）：説明時の話し方のコツ
+   - 重要な数字を強調する方法
+   - 複雑な情報をわかりやすく伝える工夫
+
+【出力の特徴】
+- knowledgeカテゴリを最も多く（6個以上推奨）
+- pointには具体的な数値や条件を必ず含める
+- questionは「価格は？」「〇〇の特徴は？」「〇〇と△△の違いは？」のような形式
+${fieldGuidelines}`,
+
+  // ③ ヒアリング
+  ForHearing: `あなたはロールプレイ研修の専門家です。
+与えられた資料から、「ヒアリング力向上」を目的としたトレーニングポイントを抽出してください。
+
+【ヒアリングトレーニングの目的】
+- お客様のニーズや課題を正確に聞き出すこと
+- 適切な質問で深掘りする力を身につけること
+- 聞いた情報を整理し、次のアクションにつなげること
+
+【重視するポイント】
+1. knowledge（知識）：ヒアリングすべき項目
+   - 聞くべき質問リスト
+   - 業界特有の課題パターン
+   - お客様が抱えやすい悩みや問題
+
+2. mindset（考え方）：ヒアリング時の心構え
+   - 傾聴の姿勢、共感の示し方
+   - 「なぜ？」を深掘りする意識
+   - お客様の本音を引き出すコツ
+
+3. speaking（話し方）：ヒアリング時の話し方
+   - 質問の仕方（オープン/クローズドクエスチョン）
+   - 相槌の打ち方、沈黙の活用
+
+【出力の特徴】
+- mindsetカテゴリを多めに（4個以上）
+- questionは「どうやって深掘りする？」「〇〇と言われたら何を聞く？」のような形式
+- correctAnswerは質問例を含める
+${fieldGuidelines}`,
+
+  // ④ 質疑や反論への切り返し
+  ForOutReturn: `あなたはロールプレイ研修の専門家です。
+与えられた資料から、「質疑や反論への切り返し」を目的としたトレーニングポイントを抽出してください。
+
+【切り返しトレーニングの目的】
+- お客様からの質問や反論に適切に対応できること
+- 相手を否定せずに建設的な会話を続けること
+- 厳しい質問にも冷静に対処できること
+
+【重視するポイント】
+1. knowledge（知識）：よくある質問・反論とその対応
+   - 「価格が高い」「今は必要ない」「他社と比較したい」などの定番反論
+   - 各反論への具体的な切り返しトーク
+   - 競合他社との比較情報
+
+2. mindset（考え方）：反論対応時の心構え
+   - 反論は興味の表れという考え方
+   - 感情的にならない自己コントロール
+   - 相手の立場に立った対応
+
+3. speaking（話し方）：切り返し時の話し方
+   - まず受け止める（Yes, and...）の技法
+   - 落ち着いたトーンの維持
+   - 質問で返す技法
+
+【出力の特徴】
+- knowledgeカテゴリでは具体的な反論と切り返し例を提示
+- questionは「〇〇と言われたらどう返す？」「価格が高いと言われたら？」のような形式
+- correctAnswerは具体的な切り返しセリフを含める
+${fieldGuidelines}`,
+
+  // ⑤ 話し方
+  ForSpeaking: `あなたはロールプレイ研修の専門家です。
+与えられた資料から、「話し方の向上」を目的としたトレーニングポイントを抽出してください。
+
+【話し方トレーニングの目的】
+- 声のトーン、速度、抑揚を適切にコントロールできること
+- 相手に好印象を与える話し方を身につけること
+- シチュエーションに応じた話し方の使い分けができること
+
+【重視するポイント】
+1. knowledge（知識）：話し方の基本知識
+   - 声の大きさ、速度、トーンの基準
+   - シチュエーション別の話し方パターン
+   - 避けるべき話し方（口癖、早口など）
+
+2. mindset（考え方）：話し方を意識する心構え
+   - 相手の反応を見ながら調整する意識
+   - 自分の話し方の癖を認識すること
+   - 練習の重要性
+
+3. speaking（話し方）：具体的な話し方テクニック
+   - 間の取り方、強調の仕方
+   - 表情と声の連動
+   - 敬語の正しい使い方
+   - 語尾を明確にする
+
+【出力の特徴】
+- speakingカテゴリを最も多く（5個以上推奨）
+- questionは「〇〇を説明する時の声のトーンは？」「重要なポイントをどう強調する？」のような形式
+- correctAnswerは話し方のポイントを含めたセリフ例
+${fieldGuidelines}`
+}
+
+// ゴールからプロンプトを選択する関数
+function getPromptForGoals(goals: string[]): string {
+  // ゴールをGoalTypeに変換
+  const goalTypes: GoalType[] = goals
+    .map(goal => goalLabelToType[goal])
+    .filter((type): type is GoalType => type !== undefined)
+
+  // ゴールがない場合はデフォルト
+  if (goalTypes.length === 0) {
+    return goalPrompts.ForUnderstanding
+  }
+
+  // 単一ゴールの場合
+  if (goalTypes.length === 1) {
+    return goalPrompts[goalTypes[0]]
+  }
+
+  // 複数ゴールの場合は組み合わせプロンプトを生成
+  const combinedPrompt = `あなたはロールプレイ研修の専門家です。
+与えられた資料から、以下の複合目的に対応したトレーニングポイントを抽出してください。
+
+【トレーニングの目的】
+${goalTypes.map(type => {
+  const labels: Record<GoalType, string> = {
+    ForMemorize: '台本の暗記：正確なセリフを覚えて淀みなく言えるようになること',
+    ForUnderstanding: '正確な説明：商品・サービスの特徴を正確に説明できること',
+    ForHearing: 'ヒアリング：お客様のニーズや課題を正確に聞き出すこと',
+    ForOutReturn: '切り返し：質問や反論に適切に対応できること',
+    ForSpeaking: '話し方：声のトーンや速度を適切にコントロールできること'
+  }
+  return `- ${labels[type]}`
+}).join('\n')}
+
+【ポイントの3分類】
+1. knowledge（知識）：覚えるべき情報、正確に伝えるべき内容
+2. mindset（考え方）：心構え、意識すべきこと
+3. speaking（話し方）：声の出し方、話すスピード、間の取り方
+
+【各ゴールに対応したポイント配分】
+${goalTypes.includes('ForMemorize') ? '- 台本暗記用：暗記すべき正確なセリフや定型句' : ''}
+${goalTypes.includes('ForUnderstanding') ? '- 説明用：正確な数値や特徴、よくある質問への回答' : ''}
+${goalTypes.includes('ForHearing') ? '- ヒアリング用：聞くべき質問、深掘りのコツ' : ''}
+${goalTypes.includes('ForOutReturn') ? '- 切り返し用：反論への対応パターン' : ''}
+${goalTypes.includes('ForSpeaking') ? '- 話し方用：声のトーン、抑揚、間の取り方' : ''}
+${fieldGuidelines}`
+
+  return combinedPrompt
 }
 
 export default defineEventHandler(async (event): Promise<GeneratePointsResponse> => {
@@ -25,6 +312,7 @@ export default defineEventHandler(async (event): Promise<GeneratePointsResponse>
   const { files = [], goals = [], additionalInfo = [], roleplayDesign } = body
 
   console.log('📋 Generating points summary...')
+  console.log('🎯 Goals:', goals)
 
   try {
     const openai = getOpenAIClient()
@@ -34,31 +322,21 @@ export default defineEventHandler(async (event): Promise<GeneratePointsResponse>
     const goalsText = goals.length > 0 ? goals.join('、') : '特になし'
     const additionalText = additionalInfo.length > 0 ? additionalInfo.join('\n') : '特になし'
 
+    // ゴールに応じたプロンプトを取得
+    const systemPrompt = getPromptForGoals(goals)
+
     const response = await openai.chat.completions.create({
       model: 'gpt-4o',
-      max_tokens: 4096,
+      max_tokens: 8192,
+      response_format: pointsResponseSchema,
       messages: [
         {
           role: 'system',
-          content: `あなたはロールプレイ研修の専門家です。
-与えられた資料から、ユーザーが習得すべき重要なポイントを「問と正答のセット」として抽出してください。
-
-出力形式はJSON配列で、以下の形式で出力してください：
-[
-  {"question": "質問1", "answer": "正答1"},
-  {"question": "質問2", "answer": "正答2"},
-  ...
-]
-
-注意事項：
-- 実務で使える具体的なポイントを抽出してください
-- ゴール（暗記、切り返し、ヒアリング、話し方）に関連するポイントを優先してください
-- 10〜15個程度のポイントを抽出してください
-- JSON形式のみを出力してください（説明文は不要）`
+          content: systemPrompt
         },
         {
           role: 'user',
-          content: `以下の情報から、ロールプレイで習得すべきポイントを抽出してください。
+          content: `以下の情報から、トレーニング概要とロールプレイで習得すべきポイントを抽出してください。
 
 【トレーニングのゴール】
 ${goalsText}
@@ -71,38 +349,107 @@ ${additionalText}
 
 ${roleplayDesign ? `【ロープレ設計】\n${JSON.stringify(roleplayDesign, null, 2)}` : ''}
 
-上記を踏まえて、問と正答のセットを生成してください。`
+上記を踏まえて、overview、そしてcategory, question, point, correctAnswerのセットを生成してください。
+knowledgeカテゴリは与えられた情報のみでまとめ、情報が不十分な場合は無理に作成しないでください。`
         }
       ]
     })
 
-    const content = response.choices[0]?.message?.content || '[]'
+    const content = response.choices[0]?.message?.content || '{}'
 
-    // JSONをパース
+    // Structured Outputsにより常に正しいJSON形式が保証される
+    let overview = ''
     let points: PointItem[] = []
     try {
-      // コードブロックを除去
-      const jsonStr = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-      points = JSON.parse(jsonStr)
+      const parsed = JSON.parse(content)
+      overview = parsed.overview || ''
+      points = parsed.points || []
     } catch (parseError) {
       console.error('JSON parse error:', parseError)
-      // フォールバック
-      points = [
-        { question: '挨拶の基本は何ですか？', answer: '明るく元気な声で「いらっしゃいませ」と言うこと' },
-        { question: 'お客様の話を聞く際のポイントは？', answer: '相槌を打ち、適度にメモを取りながら聞くこと' }
-      ]
+      // フォールバック（通常は発生しない）
+      overview = 'トレーニングの概要を生成できませんでした。'
+      points = getDefaultPoints(goals)
     }
 
-    return { points }
+    console.log(`✅ Generated overview and ${points.length} points`)
+    return { overview, points }
   } catch (error: any) {
     console.error('Generate Points API Error:', error)
 
     // フォールバック
     return {
-      points: [
-        { question: '基本的な挨拶の仕方は？', answer: '明るく元気に、相手の目を見て挨拶する' },
-        { question: 'お客様の要望を聞く際のポイントは？', answer: '傾聴の姿勢を示し、適切な質問で深掘りする' }
-      ]
+      overview: 'トレーニングの概要を生成できませんでした。',
+      points: getDefaultPoints(goals)
     }
   }
 })
+
+// ゴールに応じたデフォルトポイントを返す
+function getDefaultPoints(goals: string[]): PointItem[] {
+  const defaultPoints: PointItem[] = []
+
+  if (goals.includes('台本の暗記')) {
+    defaultPoints.push({
+      category: 'knowledge',
+      question: '最初の挨拶は何と言う？',
+      point: '・「お世話になっております」から始める\n・会社名と名前を明確に伝える',
+      correctAnswer: 'お世話になっております。〇〇会社の△△と申します。本日はお時間をいただきありがとうございます。'
+    })
+  }
+
+  if (goals.includes('正確な説明や質問')) {
+    defaultPoints.push({
+      category: 'knowledge',
+      question: '商品の特徴は？',
+      point: '・主要な機能を3つ程度に絞る\n・数字で表せるメリットを伝える',
+      correctAnswer: '具体的な商品情報を入力すると、より適切なポイントが生成されます。'
+    })
+  }
+
+  if (goals.includes('ヒアリング')) {
+    defaultPoints.push({
+      category: 'mindset',
+      question: 'ヒアリングで最も大切なことは？',
+      point: '・表面的な要望の背景を探る\n・「なぜ？」を深掘りする\n・お客様自身も気づいていない課題を見つける',
+      correctAnswer: 'お客様がおっしゃることをそのまま受け取るだけでなく、その背景にある本当のお困りごとを理解することが大切です。'
+    })
+  }
+
+  if (goals.includes('質疑や反論への切り返し')) {
+    defaultPoints.push({
+      category: 'knowledge',
+      question: '「価格が高い」と言われたら？',
+      point: '・まず共感を示す\n・価格に見合う価値を具体的に説明\n・費用対効果を数字で示す',
+      correctAnswer: 'おっしゃる通り、初期費用としては決して安くはございません。ただ、〇〇の効果により△△の削減が見込めますので、□□ヶ月でペイできる計算になります。'
+    })
+  }
+
+  if (goals.includes('話し方')) {
+    defaultPoints.push({
+      category: 'speaking',
+      question: '商品説明時の話し方のコツは？',
+      point: '・落ち着いたトーンで自信を持って\n・重要なポイントでは間を置く\n・お客様の反応を確認しながら進める',
+      correctAnswer: '商品のご説明をする際は、ゆっくりと落ち着いた声でお話しするようにしています。特に大事なポイントでは少し間を取って、お客様がご理解いただけているかお顔を見ながら進めていきます。'
+    })
+  }
+
+  // ゴールが空の場合のデフォルト
+  if (defaultPoints.length === 0) {
+    defaultPoints.push(
+      {
+        category: 'mindset',
+        question: 'お客様の要望を聞く際のポイントは？',
+        point: '・傾聴の姿勢を示す\n・適切な相槌を打つ\n・メモを取る',
+        correctAnswer: '傾聴の姿勢を示し、適切な質問で深掘りすることがポイントです。'
+      },
+      {
+        category: 'speaking',
+        question: '基本的な挨拶の仕方は？',
+        point: '・明るくはっきりと\n・相手の目を見る\n・笑顔を忘れずに',
+        correctAnswer: '明るく元気に、相手の目を見て笑顔で挨拶することが大切です。'
+      }
+    )
+  }
+
+  return defaultPoints
+}

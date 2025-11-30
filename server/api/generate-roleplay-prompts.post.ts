@@ -1,4 +1,5 @@
 import { getOpenAIClient } from '../utils/openai'
+import type { ResponseFormatJSONSchema } from 'openai/resources/shared'
 
 interface GenerateRoleplayPromptsRequest {
   files: Array<{
@@ -18,6 +19,60 @@ interface GenerateRoleplayPromptsResponse {
   customerScenarios: string[]
 }
 
+// Structured Outputs用JSON Schema（先生プロンプト）
+const promptResponseSchema: ResponseFormatJSONSchema = {
+  type: 'json_schema',
+  json_schema: {
+    name: 'prompt_response',
+    strict: true,
+    schema: {
+      type: 'object',
+      properties: {
+        prompt: {
+          type: 'string',
+          description: 'AIシステムプロンプト'
+        }
+      },
+      required: ['prompt'],
+      additionalProperties: false
+    }
+  }
+}
+
+// Structured Outputs用JSON Schema（顧客シナリオ）
+const customerScenariosSchema: ResponseFormatJSONSchema = {
+  type: 'json_schema',
+  json_schema: {
+    name: 'customer_scenarios_response',
+    strict: true,
+    schema: {
+      type: 'object',
+      properties: {
+        scenarios: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              title: {
+                type: 'string',
+                description: 'シナリオのタイトル（例：急いでいるお客さん）'
+              },
+              prompt: {
+                type: 'string',
+                description: 'AIがこの顧客を演じるためのシステムプロンプト'
+              }
+            },
+            required: ['title', 'prompt'],
+            additionalProperties: false
+          }
+        }
+      },
+      required: ['scenarios'],
+      additionalProperties: false
+    }
+  }
+}
+
 export default defineEventHandler(async (event): Promise<GenerateRoleplayPromptsResponse> => {
   const body = await readBody<GenerateRoleplayPromptsRequest>(event)
   const { files = [], goals = [], additionalInfo = [], points = [], roleplayDesign } = body
@@ -33,10 +88,11 @@ export default defineEventHandler(async (event): Promise<GenerateRoleplayPrompts
     const additionalText = additionalInfo.length > 0 ? additionalInfo.join('\n') : '特になし'
     const pointsText = points.map((p, i) => `${i + 1}. 問: ${p.question} / 答: ${p.answer}`).join('\n')
 
-    // 1. vs先生プロンプト生成
+    // 1. vs先生プロンプト生成（Structured Outputs使用）
     const teacherPromptResponse = await openai.chat.completions.create({
       model: 'gpt-4o',
       max_tokens: 2048,
+      response_format: promptResponseSchema,
       messages: [
         {
           role: 'system',
@@ -47,9 +103,7 @@ export default defineEventHandler(async (event): Promise<GenerateRoleplayPrompts
 - ユーザーにポイントをQA形式で質問していく
 - 回答が正しければ褒めて次へ進む
 - 回答が間違っていればヒントを出したり、正解を教えて会話を続ける
-- 優しく励ましながら学習をサポートする
-
-出力は、そのままAIのシステムプロンプトとして使える形式で出力してください。`
+- 優しく励ましながら学習をサポートする`
         },
         {
           role: 'user',
@@ -70,10 +124,11 @@ ${additionalText}`
       ]
     })
 
-    // 2. フィードバック基準プロンプト生成
+    // 2. フィードバック基準プロンプト生成（Structured Outputs使用）
     const feedbackPromptResponse = await openai.chat.completions.create({
       model: 'gpt-4o',
       max_tokens: 2048,
+      response_format: promptResponseSchema,
       messages: [
         {
           role: 'system',
@@ -84,9 +139,7 @@ ${additionalText}`
 - 各ポイントの正解判定基準
 - 部分点の基準
 - よくある間違いと対処法
-- 励ましのメッセージパターン
-
-出力は、そのままAIのシステムプロンプトに組み込める形式で出力してください。`
+- 励ましのメッセージパターン`
         },
         {
           role: 'user',
@@ -104,24 +157,16 @@ ${fileContents}`
       ]
     })
 
-    // 3. vs客シナリオ10パターン生成
+    // 3. vs客シナリオ10パターン生成（Structured Outputs使用）
     const customerScenariosResponse = await openai.chat.completions.create({
       model: 'gpt-4o',
       max_tokens: 8192,
+      response_format: customerScenariosSchema,
       messages: [
         {
           role: 'system',
           content: `あなたはAIロールプレイシステムのシナリオ作成専門家です。
 様々なタイプの「お客さん」を演じるAIのシステムプロンプトを10パターン作成してください。
-
-【出力形式】
-各シナリオは「===シナリオN===」で区切り、以下の形式で出力：
-===シナリオ1===
-あなたは〇〇タイプの顧客です。
-...詳細な設定とプロンプト...
-
-===シナリオ2===
-...
 
 【シナリオのバリエーション例】
 - 急いでいるお客さん
@@ -132,7 +177,8 @@ ${fileContents}`
 - 初めてのお客さん
 - リピーターのお客さん
 - 比較検討中のお客さん
-- etc.
+- 友好的なお客さん
+- 専門知識があるお客さん
 
 各シナリオは実際のAIシステムプロンプトとして使える形式で出力してください。`
         },
@@ -155,12 +201,40 @@ ${additionalText}`
       ]
     })
 
-    const teacherPrompt = teacherPromptResponse.choices[0]?.message?.content || generateFallbackTeacherPrompt(points)
-    const feedbackPrompt = feedbackPromptResponse.choices[0]?.message?.content || generateFallbackFeedbackPrompt(points)
-    const customerScenariosRaw = customerScenariosResponse.choices[0]?.message?.content || ''
+    // Structured Outputsの結果をパース
+    let teacherPrompt = generateFallbackTeacherPrompt(points)
+    let feedbackPrompt = generateFallbackFeedbackPrompt(points)
+    let customerScenarios: string[] = generateFallbackCustomerScenarios()
 
-    // シナリオを分割
-    const customerScenarios = parseCustomerScenarios(customerScenariosRaw)
+    try {
+      const teacherContent = teacherPromptResponse.choices[0]?.message?.content
+      if (teacherContent) {
+        const parsed = JSON.parse(teacherContent) as { prompt: string }
+        teacherPrompt = parsed.prompt
+      }
+    } catch (e) {
+      console.error('Teacher prompt parse error:', e)
+    }
+
+    try {
+      const feedbackContent = feedbackPromptResponse.choices[0]?.message?.content
+      if (feedbackContent) {
+        const parsed = JSON.parse(feedbackContent) as { prompt: string }
+        feedbackPrompt = parsed.prompt
+      }
+    } catch (e) {
+      console.error('Feedback prompt parse error:', e)
+    }
+
+    try {
+      const scenariosContent = customerScenariosResponse.choices[0]?.message?.content
+      if (scenariosContent) {
+        const parsed = JSON.parse(scenariosContent) as { scenarios: Array<{ title: string; prompt: string }> }
+        customerScenarios = parsed.scenarios.map(s => `【${s.title}】\n${s.prompt}`)
+      }
+    } catch (e) {
+      console.error('Customer scenarios parse error:', e)
+    }
 
     return {
       teacherPrompt,
@@ -177,22 +251,6 @@ ${additionalText}`
     }
   }
 })
-
-function parseCustomerScenarios(raw: string): string[] {
-  if (!raw) return generateFallbackCustomerScenarios()
-
-  // ===シナリオN=== で分割
-  const parts = raw.split(/===シナリオ\d+===/).filter(s => s.trim())
-
-  if (parts.length === 0) {
-    // 別のパターンを試す
-    const altParts = raw.split(/シナリオ\d+[:：]/).filter(s => s.trim())
-    if (altParts.length > 0) return altParts.slice(0, 10)
-    return generateFallbackCustomerScenarios()
-  }
-
-  return parts.slice(0, 10)
-}
 
 function generateFallbackTeacherPrompt(points: Array<{ question: string; answer: string }>): string {
   return `あなたは優しい先生として、学習者にポイントを確認していきます。

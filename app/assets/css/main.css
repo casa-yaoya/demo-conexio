@@ -266,28 +266,32 @@ body {
 .content-creation-container {
   display: grid;
   grid-template-columns: 420px 420px 1fr;
-  gap: 0;
+  grid-template-rows: auto 1fr;
+  gap: 12px;
+  padding: 12px;
   height: calc(100vh - 64px);
   overflow: hidden;
   background: #f8fafc;
 }
 
-/* 左列: 操作パネル */
+/* 左列: 入力パネル */
 .cc-operation-panel {
   display: flex;
   flex-direction: column;
   background: white;
-  border-right: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   overflow: hidden;
   position: relative;
 }
 
-/* 中央列: 構築パネル */
+/* 中央列: 設計パネル */
 .cc-build-panel {
   display: flex;
   flex-direction: column;
   background: white;
-  border-right: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   overflow: hidden;
 }
 
@@ -295,16 +299,18 @@ body {
 .cc-right-column {
   display: flex;
   flex-direction: column;
+  gap: 12px;
   overflow: hidden;
 }
 
 .cc-play-component {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 0;
   background: white;
-  border-bottom: 1px solid #e5e7eb;
-  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  padding: 0;
   flex-shrink: 0;
   max-height: 45%;
   overflow: hidden;
@@ -315,6 +321,8 @@ body {
   display: flex;
   flex-direction: column;
   background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   overflow: hidden;
 }
 
@@ -341,6 +349,36 @@ body {
   font-weight: 600;
   color: #1e293b;
   white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ヘッダーアクションボタン（グローバル） */
+.cc-header-action-button {
+  margin-left: auto;
+  height: 36px;
+  padding: 0 16px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%) !important;
+  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3);
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.cc-header-action-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4);
+}
+
+.cc-header-action-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cc-header-action-icon {
+  font-size: 14px;
+  margin-right: 6px;
 }
 
 .cc-panel-header-select {
@@ -396,9 +434,125 @@ body {
 .cc-play-content {
   display: flex;
   flex-direction: row;
-  gap: 16px;
+  gap: 0;
   flex: 1;
   min-height: 0;
+  overflow: hidden;
+}
+
+/* 左側: プレイ設定パネル */
+.cc-opponent-panel {
+  width: 200px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  background: #ffffff;
+  border-right: 1px solid #e5e7eb;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.04);
+}
+
+.cc-opponent-thumbnail {
+  width: 100%;
+  aspect-ratio: 1;
+  background: linear-gradient(135deg, #f3e8ff 0%, #ede9fe 100%);
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 2px solid #e5e7eb;
+  transition: all 0.2s;
+  margin-bottom: 4px;
+}
+
+.cc-opponent-thumbnail:hover {
+  border-color: #8b5cf6;
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.25);
+}
+
+.cc-opponent-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cc-opponent-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 56px;
+}
+
+.cc-opponent-select-group {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+
+.cc-opponent-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  white-space: nowrap;
+  min-width: 40px;
+}
+
+.cc-opponent-select {
+  flex: 1;
+  min-width: 0;
+}
+
+.cc-opponent-spacer {
+  flex: 1;
+  min-height: 8px;
+}
+
+.cc-opponent-mic-btn {
+  width: 100%;
+}
+
+.cc-opponent-start-btn {
+  width: 100%;
+}
+
+/* 中央: 映像表示エリア */
+.cc-video-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: #f8fafc;
+}
+
+.cc-video-status-message {
+  padding: 12px 16px;
+  text-align: left;
+  background: #ffffff;
+  border-top: 1px solid #e5e7eb;
+}
+
+.cc-video-status-message .cc-status-text {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.cc-video-status-message .cc-status-speaking {
+  color: #8b5cf6;
+}
+
+.cc-video-status-message .cc-status-recording {
+  color: #ef4444;
+}
+
+.cc-video-status-message .cc-status-waiting {
+  color: #f59e0b;
+}
+
+.cc-video-status-message .cc-status-idle {
+  color: #6b7280;
 }
 
 /* Roleplay Mode Component */
@@ -503,6 +657,13 @@ body {
 .cc-character-icon-box:hover {
   border-color: #0ea5e9;
   background: #f0f9ff;
+}
+
+.cc-character-icon-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 6px;
 }
 
 .cc-voice-settings-component {
@@ -920,6 +1081,8 @@ body {
   flex-direction: column;
   gap: 12px;
   height: 100%;
+  padding: 16px;
+  min-width: 0;
 }
 
 .cc-character-window {

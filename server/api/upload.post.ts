@@ -1,10 +1,13 @@
 // File upload endpoint
 import { readMultipartFormData } from 'h3'
-import { parseFile } from '../utils/fileParser'
+import { parseFileMetadata } from '../utils/fileParser'
 import type { FileUploadResponse, UploadedFile } from '~/types/file'
 
 // In-memory storage for uploaded files (in production, use database)
 const uploadedFiles = new Map<string, UploadedFile>()
+
+// Store file buffers for later content extraction
+const fileBuffers = new Map<string, Buffer>()
 
 export default defineEventHandler(async (event): Promise<FileUploadResponse> => {
   console.log('📥 Upload API called')
@@ -38,9 +41,9 @@ export default defineEventHandler(async (event): Promise<FileUploadResponse> => 
     const dataType = dataTypeField?.data?.toString() || 'other'
     console.log('📋 DataType:', dataType)
 
-    // Parse file content
-    console.log('🔍 Parsing file...')
-    const parseResult = await parseFile(
+    // Parse file for metadata only (structure info without full content)
+    console.log('🔍 Parsing file metadata...')
+    const parseResult = await parseFileMetadata(
       fileData.data,
       fileData.filename,
       fileData.type || 'application/octet-stream'
@@ -63,10 +66,17 @@ export default defineEventHandler(async (event): Promise<FileUploadResponse> => 
       size: fileData.data.length,
       type: fileData.type || 'application/octet-stream',
       dataType: dataType as 'textbook' | 'roleplay' | 'other',
-      extractedText: parseResult.text,
-      uploadedAt: new Date()
+      extractedText: parseResult.text,  // メタデータのみ（or 分割不可の場合は全テキスト）
+      uploadedAt: new Date(),
+      separable: parseResult.separable  // 分離可能項目情報を追加
     }
     console.log('✅ File record created:', fileId)
+    if (parseResult.separable) {
+      console.log('📊 Separable info:', parseResult.separable.type, 'count:', parseResult.separable.totalCount)
+    }
+
+    // Store file buffer for later content extraction
+    fileBuffers.set(fileId, fileData.data)
 
     // Store in memory (in production, save to database)
     uploadedFiles.set(fileId, uploadedFile)
@@ -85,5 +95,5 @@ export default defineEventHandler(async (event): Promise<FileUploadResponse> => 
   }
 })
 
-// Export uploadedFiles for other endpoints to access
-export { uploadedFiles }
+// Export for other endpoints to access
+export { uploadedFiles, fileBuffers }

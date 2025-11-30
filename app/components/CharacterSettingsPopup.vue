@@ -6,8 +6,33 @@
 
     <template #body>
       <div class="space-y-6">
-        <!-- キャラクター選択 -->
-        <div class="setting-section">
+        <!-- 選択されたキャラクター情報（BuildPanelから） -->
+        <div v-if="props.currentSettings?.characterInfo" class="selected-character-section">
+          <div class="selected-character-card">
+            <div class="selected-character-avatar">
+              <video
+                :src="props.currentSettings.characterInfo.avatar"
+                class="selected-avatar-video"
+                autoplay
+                loop
+                muted
+                playsinline
+              />
+            </div>
+            <div class="selected-character-info">
+              <div class="selected-character-name">{{ props.currentSettings.characterInfo.name }}</div>
+              <div class="selected-character-age">{{ props.currentSettings.characterInfo.age }}歳</div>
+              <div class="selected-character-attribute">{{ props.currentSettings.characterInfo.attribute }}</div>
+              <div class="selected-character-personality">
+                <span class="detail-label">性格:</span> {{ props.currentSettings.characterInfo.personality }}
+              </div>
+              <div class="selected-character-catchphrase">{{ props.currentSettings.characterInfo.catchphrase }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- キャラクター選択（BuildPanelから選択がない場合） -->
+        <div v-else class="setting-section">
           <label class="setting-label">キャラクター</label>
           <div class="character-grid">
             <UButton
@@ -199,6 +224,16 @@
 </template>
 
 <script setup lang="ts">
+export interface CharacterInfo {
+  id: string
+  name: string
+  age: number
+  attribute: string
+  personality: string
+  catchphrase: string
+  avatar: string
+}
+
 export interface CharacterSettings {
   character: string
   voice: string
@@ -208,6 +243,7 @@ export interface CharacterSettings {
   difficulty: string
   customListeningVideo?: string | null
   customSpeakingVideo?: string | null
+  characterInfo?: CharacterInfo | null
 }
 
 const props = defineProps<{
@@ -619,5 +655,74 @@ const removeFile = (type: 'listening' | 'speaking') => {
   width: 100%;
   height: 120px;
   object-fit: cover;
+}
+
+/* 選択されたキャラクター情報 */
+.selected-character-section {
+  margin-bottom: 1rem;
+}
+
+.selected-character-card {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+  border: 1px solid #c4b5fd;
+  border-radius: 12px;
+}
+
+.selected-character-avatar {
+  width: 100px;
+  height: 100px;
+  border-radius: 12px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: #1e293b;
+}
+
+.selected-avatar-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.selected-character-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.selected-character-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.selected-character-age {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.selected-character-attribute {
+  font-size: 13px;
+  color: #8b5cf6;
+  font-weight: 500;
+}
+
+.selected-character-personality {
+  font-size: 12px;
+  color: #475569;
+}
+
+.selected-character-personality .detail-label {
+  color: #9ca3af;
+}
+
+.selected-character-catchphrase {
+  font-size: 12px;
+  color: #6366f1;
+  font-style: italic;
+  margin-top: 4px;
 }
 </style>

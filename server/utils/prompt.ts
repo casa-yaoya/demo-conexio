@@ -2,7 +2,7 @@ import { promises as fs } from 'fs'
 import path from 'path'
 
 // プロンプトカテゴリの定義
-type PromptCategory = 'chat' | 'generation' | 'runtime' | 'evaluation'
+type PromptCategory = 'chat' | 'generation' | 'runtime' | 'evaluation' | 'agent'
 
 // プロンプト名からカテゴリとファイル名へのマッピング
 const PROMPT_MAPPING: Record<string, { category: PromptCategory; file: string }> = {
@@ -33,6 +33,11 @@ const PROMPT_MAPPING: Record<string, { category: PromptCategory; file: string }>
   // 評価系
   'feedback': { category: 'evaluation', file: 'feedback.md' },
   'feedback-prompt': { category: 'evaluation', file: 'feedback.md' }, // 後方互換性
+
+  // エージェント系（Responses API用）
+  'agent-design-assistant': { category: 'agent', file: 'design-assistant.md' },
+  'agent-script-generator': { category: 'agent', file: 'script-generator.md' },
+  'agent-content-analyzer': { category: 'agent', file: 'content-analyzer.md' },
 }
 
 /**

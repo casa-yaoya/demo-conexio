@@ -1,7 +1,6 @@
-// File analysis endpoint - Analyzes uploaded files using AI
+// File analysis endpoint - Analyzes uploaded files using AI (OpenAI only)
 import { readMultipartFormData } from 'h3'
 import OpenAI from 'openai'
-import Anthropic from '@anthropic-ai/sdk'
 
 interface AnalysisResult {
   success: boolean
@@ -10,26 +9,17 @@ interface AnalysisResult {
   error?: string
 }
 
-// Lazy initialize clients to avoid startup errors when API keys are not set
+// Lazy initialize client to avoid startup errors when API key is not set
 let openaiClient: OpenAI | null = null
-let anthropicClient: Anthropic | null = null
 
 function getOpenAI(): OpenAI {
   if (!openaiClient) {
+    const config = useRuntimeConfig()
     openaiClient = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY || ''
+      apiKey: config.openaiApiKey || process.env.NUXT_OPENAI_API_KEY || ''
     })
   }
   return openaiClient
-}
-
-function getAnthropic(): Anthropic {
-  if (!anthropicClient) {
-    anthropicClient = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY || ''
-    })
-  }
-  return anthropicClient
 }
 
 export default defineEventHandler(async (event): Promise<AnalysisResult> => {
@@ -44,6 +34,7 @@ export default defineEventHandler(async (event): Promise<AnalysisResult> => {
 
     const fileData = formData.find(item => item.filename)
     const fileTypeField = formData.find(item => item.name === 'fileType')
+    const selectedRangeField = formData.find(item => item.name === 'selectedRange')
 
     if (!fileData || !fileData.filename || !fileData.data) {
       return { success: false, error: 'Invalid file data' }
@@ -53,11 +44,24 @@ export default defineEventHandler(async (event): Promise<AnalysisResult> => {
     const filename = fileData.filename
     const buffer = fileData.data
 
+    // Parse selected range if provided
+    let selectedRange: number[] = []
+    if (selectedRangeField?.data) {
+      try {
+        selectedRange = JSON.parse(selectedRangeField.data.toString())
+      } catch {
+        selectedRange = []
+      }
+    }
+
     console.log(`📄 Analyzing file: ${filename}, type: ${fileType}, size: ${buffer.length}`)
+    if (selectedRange.length > 0) {
+      console.log(`📊 Selected pages/range: ${selectedRange.join(', ')}`)
+    }
 
     // Route to appropriate analyzer based on file type
     if (fileType === 'pdf' || filename.toLowerCase().endsWith('.pdf')) {
-      return await analyzePDF(buffer, filename)
+      return await analyzePDF(buffer, filename, selectedRange)
     } else if (fileType === 'audio' || isAudioFile(filename)) {
       return await analyzeAudio(buffer, filename)
     } else if (fileType === 'video' || isVideoFile(filename)) {
@@ -88,13 +92,48 @@ function isVideoFile(filename: string): boolean {
 }
 
 // Analyze PDF using OpenAI Vision
-async function analyzePDF(buffer: Buffer, filename: string): Promise<AnalysisResult> {
+async function analyzePDF(buffer: Buffer, filename: string, selectedPages: number[] = []): Promise<AnalysisResult> {
   console.log('📑 Analyzing PDF with OpenAI Vision...')
+  if (selectedPages.length > 0) {
+    console.log(`📊 Extracting only pages: ${selectedPages.join(', ')}`)
+  }
 
   try {
     // Convert PDF pages to images using pdf-lib and canvas
     // For now, send the PDF as base64 directly (OpenAI can process PDF)
     const base64PDF = buffer.toString('base64')
+
+    // Build prompt based on selected pages
+    let promptText: string
+    if (selectedPages.length > 0) {
+      const pageList = selectedPages.join(', ')
+      promptText = `このPDFファイルから、指定されたページのみの内容を抽出してください。
+
+【抽出対象ページ】: ${pageList}
+
+要件：
+1. 上記で指定されたページのみを抽出。他のページは無視
+2. テキストは元の配置・順序を保持
+3. 表は構造を保持して記述（マークダウン形式推奨）
+4. 図やグラフがある場合、その内容を説明
+5. 数字や金額は正確に抽出
+6. 見出しや項目名は明確に区別
+7. 各ページは「=== ページ N ===」で区切り
+
+日本語の文字は全て正確に抽出してください。指定ページ以外の内容は一切含めないでください。`
+    } else {
+      promptText = `このPDFファイルの内容を全て抽出してください。
+
+要件：
+1. テキストは元の配置・順序を保持
+2. 表は構造を保持して記述（マークダウン形式推奨）
+3. 図やグラフがある場合、その内容を説明
+4. 数字や金額は正確に抽出
+5. 見出しや項目名は明確に区別
+6. ページごとに「=== ページ N ===」で区切り
+
+日本語の文字は全て正確に抽出してください。`
+    }
 
     // Use OpenAI to analyze the PDF
     const response = await getOpenAI().chat.completions.create({
@@ -112,17 +151,7 @@ async function analyzePDF(buffer: Buffer, filename: string): Promise<AnalysisRes
             } as any,
             {
               type: 'text',
-              text: `このPDFファイルの内容を全て抽出してください。
-
-要件：
-1. テキストは元の配置・順序を保持
-2. 表は構造を保持して記述（マークダウン形式推奨）
-3. 図やグラフがある場合、その内容を説明
-4. 数字や金額は正確に抽出
-5. 見出しや項目名は明確に区別
-6. ページごとに「=== ページ N ===」で区切り
-
-日本語の文字は全て正確に抽出してください。`
+              text: promptText
             }
           ]
         }
@@ -148,52 +177,26 @@ async function analyzePDF(buffer: Buffer, filename: string): Promise<AnalysisRes
   }
 }
 
-// Analyze audio using Claude
+// Analyze audio using OpenAI Whisper
 async function analyzeAudio(buffer: Buffer, filename: string): Promise<AnalysisResult> {
-  console.log('🎵 Analyzing audio with Claude...')
+  console.log('🎵 Analyzing audio with OpenAI Whisper...')
 
   try {
-    const base64Audio = buffer.toString('base64')
     const mimeType = getMimeType(filename)
+    const file = new File([buffer], filename, { type: mimeType })
 
-    const response = await getAnthropic().messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 16000,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'document',
-              source: {
-                type: 'base64',
-                media_type: mimeType,
-                data: base64Audio
-              }
-            },
-            {
-              type: 'text',
-              text: `この音声ファイルの内容を文字起こししてください。
-
-要件：
-1. 発言者が複数いる場合は、発言者を区別
-2. タイムスタンプは不要
-3. 聞き取れない部分は[不明瞭]と記載
-4. 日本語は正確に書き起こし
-
-音声の全内容を正確に文字起こししてください。`
-            }
-          ]
-        }
-      ]
+    // Send to Whisper API for transcription
+    const transcription = await getOpenAI().audio.transcriptions.create({
+      file: file,
+      model: 'whisper-1',
+      language: 'ja'
     })
 
-    const content = response.content[0]?.type === 'text' ? response.content[0].text : ''
-    console.log('✅ Audio transcription complete')
+    console.log('✅ Audio transcription complete via Whisper')
 
     return {
       success: true,
-      text: content
+      text: transcription.text
     }
   } catch (error) {
     console.error('Audio analysis error:', error)
@@ -228,59 +231,11 @@ async function analyzeVideo(buffer: Buffer, filename: string): Promise<AnalysisR
       success: true,
       text: transcription.text
     }
-  } catch (whisperError: any) {
-    console.warn('Whisper API failed, trying Claude fallback:', whisperError.message)
-
-    // Fallback: try direct video analysis with Claude
-    try {
-      const base64Video = buffer.toString('base64')
-      const mimeType = getMimeType(filename)
-
-      const response = await getAnthropic().messages.create({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 16000,
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'document',
-                source: {
-                  type: 'base64',
-                  media_type: mimeType,
-                  data: base64Video
-                }
-              },
-              {
-                type: 'text',
-                text: `この動画の音声内容を文字起こししてください。
-
-要件：
-1. 発言者が複数いる場合は、発言者を区別
-2. タイムスタンプは不要
-3. 聞き取れない部分は[不明瞭]と記載
-4. 日本語は正確に書き起こし
-
-動画内の全ての音声内容を正確に文字起こししてください。`
-              }
-            ]
-          }
-        ]
-      })
-
-      const content = response.content[0]?.type === 'text' ? response.content[0].text : ''
-      console.log('✅ Video transcription complete via Claude fallback')
-
-      return {
-        success: true,
-        text: content
-      }
-    } catch (claudeError) {
-      console.error('Video analysis error:', claudeError)
-      return {
-        success: false,
-        error: `動画解析に失敗しました: ${whisperError.message}`
-      }
+  } catch (error) {
+    console.error('Video analysis error:', error)
+    return {
+      success: false,
+      error: `動画解析に失敗しました: ${error instanceof Error ? error.message : 'Unknown error'}`
     }
   }
 }
