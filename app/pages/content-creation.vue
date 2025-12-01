@@ -250,6 +250,7 @@
         @update:overview="buildOverview = $event"
         @update:selected-persona="selectedCharacter = $event"
         @generate-prompts="generateAllPrompts"
+        @generate-single-prompt="handleGenerateSinglePrompt"
         @character-selected="handleCharacterSelected"
       />
     </div>
@@ -376,25 +377,18 @@
         </div>
       </div>
 
-      <!-- モード選択バー（プレイパネルとプロンプトパネルの間） -->
-      <div class="cc-mode-selector-bar">
-        <UIcon name="i-lucide-settings-2" class="cc-mode-selector-icon" />
-        <span class="cc-mode-selector-label">モード選択：</span>
-        <USelect
-          v-model="selectedMode"
-          :items="modeOptions"
-          size="md"
-          class="cc-mode-selector-select"
-        />
-        <span class="cc-mode-selector-hint">{{ getModeDescription(selectedMode) }}</span>
-      </div>
-
       <!-- プロンプトパネル（下） -->
       <div class="cc-panel cc-prompt-panel">
         <div class="cc-panel-header">
           <UIcon name="i-lucide-file-code" class="cc-panel-header-icon" />
-          <span class="cc-panel-header-title">プロンプト</span>
-          <span class="cc-prompt-mode-label">{{ selectedModeLabel }}</span>
+          <span class="cc-panel-header-title">モード：</span>
+          <USelect
+            v-model="selectedMode"
+            :items="modeOptions"
+            size="sm"
+            class="cc-prompt-mode-select"
+          />
+          <span class="cc-prompt-mode-description">{{ getModeDescription(selectedMode) }}</span>
         </div>
 
         <div class="cc-prompt-content-wrapper">
@@ -540,7 +534,7 @@ const modeOptions = [
   { label: '台本モード', value: 'subtitle' },
   { label: 'お手本モード', value: 'ai-demo' },
   { label: '確認モード', value: 'confirmation' },
-  { label: '実戦モード', value: 'practice' }
+  { label: '実践モード', value: 'practice' }
 ]
 
 const voiceOptions = [
@@ -607,17 +601,6 @@ const systemPromptsDisplay = ref<SystemPromptDisplay[]>(
   }))
 )
 
-// モードラベルのマッピング
-const modeLabelMap: Record<string, string> = {
-  'subtitle': '台本モード',
-  'ai-demo': 'お手本モード',
-  'confirmation': '確認モード',
-  'practice': '実戦モード'
-}
-
-// 選択中のモードのラベル
-const selectedModeLabel = computed(() => modeLabelMap[selectedMode.value] || selectedMode.value)
-
 // モードの説明を取得
 const getModeDescription = (mode: string): string => {
   const descriptions: Record<string, string> = {
@@ -629,9 +612,47 @@ const getModeDescription = (mode: string): string => {
   return descriptions[mode] || ''
 }
 
-// 選択中のモードに対応するプロンプト
-const currentPrompt = computed(() => {
+// 選択中のモードに対応する題材プロンプト
+const currentSubjectPrompt = computed(() => {
   return systemPromptsDisplay.value.find(p => p.modeKey === selectedMode.value)
+})
+
+// 合成プロンプト（題材プロンプト + 人格プロンプト）をリアクティブに生成
+const mergedPrompt = computed(() => {
+  const subjectPrompt = currentSubjectPrompt.value
+  if (!subjectPrompt?.content) {
+    return null
+  }
+
+  // 選択されたキャラクター情報を取得
+  const character = selectedCharacterInfo.value
+  if (!character) {
+    // キャラクターがなければ題材プロンプトのみ
+    return {
+      content: subjectPrompt.content,
+      isGenerating: subjectPrompt.isGenerating
+    }
+  }
+
+  // 題材プロンプト + 人格プロンプトを合成
+  const characterSettings = `
+
+あなたの設定：
+- 名前: ${character.name}
+- 年齢: ${character.age}歳
+- 属性: ${character.attribute}
+- 性格: ${character.personality}
+- 口癖: ${character.catchphrase}`
+
+  return {
+    content: subjectPrompt.content + characterSettings,
+    isGenerating: subjectPrompt.isGenerating
+  }
+})
+
+// 現在のプロンプト（合成済み）
+const currentPrompt = computed(() => {
+  return mergedPrompt.value || currentSubjectPrompt.value
 })
 
 // 選択中のモードのインデックス
@@ -772,20 +793,40 @@ const toggleRoleplay = async () => {
 
 // Get instructions based on selected mode
 const getInstructionsForMode = (mode: string): string => {
+  // ベースプロンプトを取得
+  let basePrompt = ''
+
   // 生成されたプロンプトがあればそれを使用
   const generatedPrompt = systemPromptsDisplay.value.find(p => p.modeKey === mode)
   if (generatedPrompt?.content) {
-    return generatedPrompt.content
+    basePrompt = generatedPrompt.content
+  } else {
+    // デフォルトのプロンプト（生成前）
+    const modeInstructions: Record<string, string> = {
+      'subtitle': 'あなたはロールプレイの台本読み上げアシスタントです。台本に沿って話してください。',
+      'ai-demo': 'あなたはお手本を見せるアシスタントです。理想的な対応を実演してください。',
+      'confirmation': 'あなたは確認モードのアシスタントです。ユーザーの理解度を確認しながら進めてください。',
+      'practice': 'あなたは実戦モードの練習相手です。リアルな顧客として振る舞い、ユーザーの対応を評価してください。'
+    }
+    basePrompt = modeInstructions[mode] ?? modeInstructions['practice'] ?? ''
   }
 
-  // デフォルトのプロンプト（生成前）
-  const modeInstructions: Record<string, string> = {
-    'subtitle': 'あなたはロールプレイの台本読み上げアシスタントです。台本に沿って話してください。',
-    'ai-demo': 'あなたはお手本を見せるアシスタントです。理想的な対応を実演してください。',
-    'confirmation': 'あなたは確認モードのアシスタントです。ユーザーの理解度を確認しながら進めてください。',
-    'practice': 'あなたは実戦モードの練習相手です。リアルな顧客として振る舞い、ユーザーの対応を評価してください。'
+  // 選択されたキャラクター情報を追加
+  const character = selectedCharacterInfo.value
+  if (character) {
+    const characterSettings = `
+
+あなたの設定：
+- 名前: ${character.name}
+- 年齢: ${character.age}歳
+- 属性: ${character.attribute}
+- 性格: ${character.personality}
+- 口癖: ${character.catchphrase}`
+
+    return basePrompt + characterSettings
   }
-  return modeInstructions[mode] || modeInstructions['practice']
+
+  return basePrompt
 }
 
 // Toggle microphone - now uses Realtime API
@@ -946,7 +987,7 @@ const generateSinglePrompt = async (modeKey: string, index: number) => {
   }
 }
 
-// Generate all prompts
+// Generate all prompts (legacy - now handled by BuildPanel)
 const generateAllPrompts = async () => {
   console.log('🚀 generateAllPrompts called')
   console.log('📝 systemPromptsDisplay:', systemPromptsDisplay.value)
@@ -966,6 +1007,104 @@ const generateAllPrompts = async () => {
   }
   console.log('✅ All prompts generated')
   isGeneratingPrompts.value = false
+}
+
+// プロンプト生成設定の型
+interface PromptGenSettings {
+  speakingStyle: 'friendly' | 'polite' | 'strict'
+  maxTurnCount: number
+  endOnCall: boolean
+}
+
+// Handle single prompt generation from BuildPanel
+const handleGenerateSinglePrompt = async (modeKey: string, modeLabel: string, metaPrompt: string, settings: PromptGenSettings) => {
+  console.log(`📝 Generating prompt for mode: ${modeKey} (${modeLabel})`, settings)
+
+  // 対応するインデックスを検索
+  const index = systemPromptsDisplay.value.findIndex((p: SystemPromptDisplay) => p.modeKey === modeKey)
+
+  if (index === -1) {
+    // 新しいモードの場合は追加
+    systemPromptsDisplay.value.push({
+      mode: modeLabel,
+      modeKey: modeKey,
+      content: '',
+      expanded: false,
+      isGenerating: true
+    })
+  } else {
+    const prompt = systemPromptsDisplay.value[index]
+    if (prompt) prompt.isGenerating = true
+  }
+
+  const targetIndex = index === -1 ? systemPromptsDisplay.value.length - 1 : index
+  const targetPrompt = systemPromptsDisplay.value[targetIndex]
+
+  try {
+    // ポイントデータから評価ポイントを構築
+    const pointsForDesign = buildPoints.value.map((p: { question: string; point: string; correctAnswer: string }) => ({
+      question: p.question,
+      criteria: p.correctAnswer,
+      example: p.point
+    }))
+
+    // キャラクター情報を取得
+    const characterInfo = selectedCharacterInfo.value
+
+    // 台本データを取得
+    const scriptText = buildScriptLines.value.map((line: { speaker: string; text: string }) => {
+      const speaker = line.speaker === 'self' ? 'あなた' : (line.speaker === 'narrator' ? 'ナレーター' : 'お客様')
+      return `${speaker}：${line.text}`
+    }).join('\n')
+
+    // 話し方スタイルのラベル変換
+    const speakingStyleLabels: Record<string, string> = {
+      'friendly': 'フレンドリー',
+      'polite': 'ていねい',
+      'strict': '厳しい'
+    }
+
+    const response = await $fetch<{ mode: string; systemPrompt: string }>('/api/generate-prompt', {
+      method: 'POST',
+      body: {
+        mode: modeKey,
+        metaPrompt: metaPrompt,
+        roleplayDesign: {
+          situation: buildOverview.value,
+          opponentSetting: characterInfo ? `${characterInfo.name}（${characterInfo.attribute}）: ${characterInfo.personality}` : undefined,
+          points: pointsForDesign.length > 0 ? pointsForDesign : undefined,
+          script: scriptText || undefined
+        },
+        settings: {
+          speakingStyle: speakingStyleLabels[settings.speakingStyle] || 'フレンドリー',
+          maxTurnCount: settings.maxTurnCount,
+          endOnCall: settings.endOnCall
+        },
+        files: uploadedFiles.value.map((f: FileData) => ({
+          name: f.name,
+          content: f.extractedText,
+          summary: f.summary
+        }))
+      }
+    })
+
+    if (targetPrompt) {
+      targetPrompt.content = response.systemPrompt
+      targetPrompt.isGenerating = false
+    }
+
+    console.log(`✅ Generated prompt for ${modeKey}`)
+
+  } catch (error) {
+    console.error('Error generating prompt:', error)
+    if (targetPrompt) {
+      targetPrompt.content = 'プロンプトの生成に失敗しました。APIキーを確認してください。'
+      targetPrompt.isGenerating = false
+    }
+  }
+
+  // BuildPanelに生成完了を通知
+  buildPanelRef.value?.notifyPromptGenerated?.()
 }
 
 const editPrompt = (index: number) => {
@@ -2121,55 +2260,24 @@ const handleDrop = (event: DragEvent) => {
   gap: 4px;
 }
 
-/* プロンプトパネルのモードラベル */
-.cc-prompt-mode-label {
-  margin-left: auto;
-  font-size: 12px;
-  font-weight: 500;
-  color: #8b5cf6;
-  background: #f5f3ff;
-  padding: 4px 12px;
-  border-radius: 4px;
-}
-
-/* モード選択バー */
-.cc-mode-selector-bar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 20px;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  margin-bottom: 12px;
-  border: 1px solid #e2e8f0;
-}
-
-.cc-mode-selector-icon {
-  font-size: 20px;
-  color: #6366f1;
-}
-
-.cc-mode-selector-label {
-  font-size: 14px;
-  font-weight: 600;
-  color: #374151;
-  white-space: nowrap;
-}
-
-.cc-mode-selector-select {
+/* プロンプトパネルのモード選択 */
+.cc-prompt-mode-select {
   min-width: 200px;
-  font-weight: 500;
+  font-weight: 600;
+  font-size: 15px;
 }
 
-.cc-mode-selector-hint {
+/* モード選択プルダウンを大きく */
+.cc-prompt-mode-select :deep(.n-select),
+.cc-prompt-mode-select :deep(button) {
+  height: 40px;
+  font-size: 15px;
+}
+
+.cc-prompt-mode-description {
   font-size: 13px;
   color: #64748b;
-  margin-left: auto;
-  padding: 6px 14px;
-  background: white;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
+  margin-left: 8px;
 }
 
 /* ヘッダー保存ボタン */

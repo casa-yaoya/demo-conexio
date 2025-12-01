@@ -7,11 +7,11 @@
         color="primary"
         size="sm"
         class="cc-header-action-button"
-        :disabled="isBuilding"
-        @click="$emit('generate-prompts')"
+        :disabled="isBuilding || isGeneratingPrompts"
+        @click="showConfirmDialog = true"
       >
         <UIcon name="i-lucide-sparkles" class="cc-header-action-icon" />
-        {{ isBuilding ? '生成中...' : 'プロンプト生成' }}
+        {{ isBuilding || isGeneratingPrompts ? '生成中...' : 'プロンプト生成' }}
       </UButton>
     </div>
 
@@ -69,21 +69,6 @@
           <div v-else class="overview-empty">まだ生成されていません...</div>
         </div>
 
-        <!-- カテゴリフィルター -->
-        <div class="category-filter">
-          <button
-            v-for="cat in categoryOptions"
-            :key="cat.value"
-            class="category-tag"
-            :class="{ active: selectedCategory === cat.value || (selectedCategory === 'all' && cat.value === 'all') }"
-            @click="selectedCategory = cat.value"
-          >
-            <span class="category-icon">{{ cat.icon }}</span>
-            <span class="category-label">{{ cat.label }}</span>
-            <span class="category-count">{{ getCategoryCount(cat.value) }}</span>
-          </button>
-        </div>
-
         <!-- ポイントリスト -->
         <div class="points-section">
           <div v-if="filteredPoints.length === 0" class="empty-message">
@@ -95,26 +80,59 @@
               :key="index"
               class="point-card"
             >
-              <!-- 問いかけ -->
-              <div class="point-question-row">
-                <span class="point-category-badge" :class="`badge-${point.category}`">
-                  {{ getCategoryLabel(point.category) }}
-                </span>
-                <span class="point-question">{{ point.question }}</span>
+              <!-- ヘッダー: Q + 問いかけ + 編集ボタン -->
+              <div class="point-header">
+                <span class="point-q-badge">Q</span>
+                <textarea
+                  v-if="editingPointIndex === index"
+                  v-model="editingPoint.question"
+                  class="point-question-edit"
+                  rows="1"
+                  placeholder="問いかけを入力..."
+                ></textarea>
+                <span v-else class="point-question-text">{{ point.question }}</span>
+                <UButton
+                  v-if="editingPointIndex !== index"
+                  variant="ghost"
+                  size="xs"
+                  icon="i-lucide-edit-2"
+                  class="point-edit-btn"
+                  @click="startEditPoint(index)"
+                />
+                <UButton
+                  v-else
+                  variant="solid"
+                  size="xs"
+                  color="primary"
+                  class="point-save-btn"
+                  @click="saveEditPoint(index)"
+                >
+                  保存
+                </UButton>
               </div>
-              <!-- ポイント（解説） -->
-              <div class="point-explanation-row">
-                <UIcon name="i-lucide-lightbulb" class="point-row-icon point-icon" />
-                <span class="point-explanation">{{ point.point }}</span>
+
+              <!-- 正解基準（横並び） -->
+              <div class="point-row">
+                <span class="point-row-label">正解基準</span>
+                <textarea
+                  v-if="editingPointIndex === index"
+                  v-model="editingPoint.point"
+                  class="point-row-edit"
+                  rows="1"
+                ></textarea>
+                <span v-else class="point-row-value">{{ point.point }}</span>
               </div>
-              <!-- 正解基準 -->
-              <div class="point-answer-row">
-                <UIcon name="i-lucide-check-circle" class="point-row-icon answer-icon" />
-                <div class="point-answer-content">
-                  <ul class="point-answer-list">
-                    <li v-for="(item, idx) in parseAnswerToList(point.correctAnswer)" :key="idx">{{ item }}</li>
-                  </ul>
-                </div>
+
+              <!-- 正答例（横並び） -->
+              <div class="point-row">
+                <span class="point-row-label">正答例</span>
+                <textarea
+                  v-if="editingPointIndex === index"
+                  v-model="editingPoint.correctAnswer"
+                  class="point-row-edit"
+                  rows="1"
+                ></textarea>
+                <span v-else class="point-row-value point-answer-value">{{ point.correctAnswer }}</span>
               </div>
             </div>
           </div>
@@ -123,27 +141,6 @@
 
       <!-- 台本タブ -->
       <div v-show="activeTab === 'script'" class="tab-pane">
-        <!-- 相手選択 -->
-        <div class="script-persona-selector">
-          <label class="persona-label">相手:</label>
-          <div class="opponent-toggle">
-            <button
-              class="opponent-toggle-btn"
-              :class="{ active: selectedOpponent === 'teacher' }"
-              @click="selectedOpponent = 'teacher'"
-            >
-              先生
-            </button>
-            <button
-              class="opponent-toggle-btn"
-              :class="{ active: selectedOpponent === 'customer' }"
-              @click="selectedOpponent = 'customer'"
-            >
-              お客様
-            </button>
-          </div>
-        </div>
-
         <!-- 台本コンテンツ -->
         <div class="script-content-area">
           <div v-if="scriptLines.length === 0" class="empty-message">
@@ -235,16 +232,169 @@
         </div>
       </template>
     </UModal>
+
+    <!-- プロンプト生成確認ダイアログ -->
+    <UModal v-model:open="showConfirmDialog" title="プロンプト生成スタート" :ui="{ width: 'max-w-2xl' }">
+      <template #body>
+        <div class="prompt-gen-dialog">
+          <!-- 現在の設定セクション -->
+          <div class="prompt-gen-section">
+            <div class="prompt-gen-section-title">現在の設定</div>
+
+            <!-- モード別タブ -->
+            <div class="prompt-gen-mode-tabs">
+              <button
+                v-for="mode in promptGenModes"
+                :key="mode.key"
+                class="prompt-gen-mode-tab"
+                :class="{ active: selectedPromptGenMode === mode.key }"
+                @click="selectedPromptGenMode = mode.key"
+              >
+                {{ mode.label }}
+              </button>
+            </div>
+
+            <!-- モード別の説明（タブの直下） -->
+            <div class="prompt-gen-mode-description-area">
+              <div v-if="selectedPromptGenMode === 'confirmation'" class="prompt-gen-mode-desc">
+                <p>AIが先生役として一問一答形式でポイントを確認します。生成されたポイントに基づいて、ユーザーの理解度をチェックします。</p>
+              </div>
+              <div v-else-if="selectedPromptGenMode === 'practice'" class="prompt-gen-mode-desc">
+                <p>AIがお客様役として実際の接客・営業シーンを再現します。リアルな対話を通じて実践力を磨きます。</p>
+              </div>
+              <div v-else-if="selectedPromptGenMode === 'subtitle'" class="prompt-gen-mode-desc">
+                <p>台本に沿ってAIが相手役を演じます。正しいセリフの流れを練習できます。</p>
+              </div>
+              <div v-else-if="selectedPromptGenMode === 'ai-demo'" class="prompt-gen-mode-desc">
+                <p>AIが理想的な対応のお手本を見せます。プロの接客・営業トークを学べます。</p>
+              </div>
+            </div>
+
+            <!-- 全モード共通パート -->
+            <div class="prompt-gen-common-section">
+              <div class="prompt-gen-common-title">共通設定</div>
+
+              <!-- 相手の話し方 -->
+              <div class="prompt-gen-field">
+                <span class="prompt-gen-field-label">相手の話し方</span>
+                <div class="prompt-gen-btn-group">
+                  <button
+                    v-for="style in speakingStyles"
+                    :key="style.value"
+                    class="prompt-gen-toggle-btn"
+                    :class="{ active: selectedSpeakingStyle === style.value }"
+                    @click="selectedSpeakingStyle = style.value"
+                  >
+                    {{ style.label }}
+                  </button>
+                </div>
+              </div>
+
+              <!-- 終了条件 -->
+              <div class="prompt-gen-field">
+                <span class="prompt-gen-field-label">終了条件</span>
+                <div class="prompt-gen-checkboxes">
+                  <!-- 上限ターン数（チェック外せない） -->
+                  <div class="prompt-gen-checkbox-row prompt-gen-checkbox-row-with-tooltip">
+                    <input
+                      type="checkbox"
+                      id="end-turn-limit"
+                      :checked="true"
+                      class="prompt-gen-checkbox"
+                      @click.prevent="showTurnLimitTooltip = true"
+                    />
+                    <label for="end-turn-limit" class="prompt-gen-checkbox-label">
+                      上限ターン数に達した時
+                      <span class="prompt-gen-turn-input-wrapper">
+                        （上限ターン数：
+                        <input
+                          type="number"
+                          v-model.number="maxTurnCount"
+                          min="1"
+                          max="40"
+                          class="prompt-gen-turn-input"
+                        />
+                        ターン）
+                      </span>
+                    </label>
+                    <div v-if="showTurnLimitTooltip" class="prompt-gen-tooltip">
+                      この項目は外せません
+                      <button class="prompt-gen-tooltip-close" @click="showTurnLimitTooltip = false">×</button>
+                    </div>
+                  </div>
+
+                  <!-- 終了コール -->
+                  <div class="prompt-gen-checkbox-row">
+                    <input
+                      type="checkbox"
+                      id="end-call"
+                      v-model="endOnCall"
+                      class="prompt-gen-checkbox"
+                    />
+                    <label for="end-call" class="prompt-gen-checkbox-label">
+                      プレイヤーまたはAIが「会話終了」などの終了コールをした時
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 不正解の時の反応 -->
+              <div class="prompt-gen-field">
+                <span class="prompt-gen-field-label">不正解の時の反応 <span class="prompt-gen-field-note">※相手が先生の時のみ関係</span></span>
+                <div class="prompt-gen-radio-group">
+                  <label class="prompt-gen-radio-label">
+                    <input type="radio" v-model="incorrectResponseType" value="show-answer" class="prompt-gen-radio" />
+                    <span>正解を教えて、次に進む（正解は、○○だよ。次に進もう。）</span>
+                  </label>
+                  <label class="prompt-gen-radio-label">
+                    <input type="radio" v-model="incorrectResponseType" value="hint-retry" class="prompt-gen-radio" />
+                    <span>ヒントを出して、もう一度答えさせる（〇〇は違うね。ヒント：●● など）</span>
+                  </label>
+                  <label class="prompt-gen-radio-label">
+                    <input type="radio" v-model="incorrectResponseType" value="no-hint-retry" class="prompt-gen-radio" />
+                    <span>ヒントを出さずに、もう一度答えさせる（「他には？」「もう少し詳しく」など）</span>
+                  </label>
+                  <label class="prompt-gen-radio-label">
+                    <input type="radio" v-model="incorrectResponseType" value="ignore-move-on" class="prompt-gen-radio" />
+                    <span>不正解であることに触れず、自然な流れで次の質問に移る</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- 警告メッセージ -->
+          <div class="prompt-gen-warning">
+            <UIcon name="i-lucide-alert-triangle" class="prompt-gen-warning-icon" />
+            <span>現在のプロンプトは上書きされます。よろしいですか？</span>
+          </div>
+        </div>
+      </template>
+      <template #footer>
+        <div class="confirm-dialog-footer">
+          <UButton variant="ghost" color="neutral" @click="showConfirmDialog = false">キャンセル</UButton>
+          <UButton color="primary" @click="confirmGeneratePrompts">はい</UButton>
+        </div>
+      </template>
+    </UModal>
+
+    <!-- プロンプト生成中オーバーレイ -->
+    <div v-if="isGeneratingPrompts" class="build-loading-overlay">
+      <div class="loading-spinner"></div>
+      <p class="loading-text">{{ generatingModeLabel }}</p>
+      <div class="generation-progress">
+        <div class="generation-progress-bar" :style="{ width: generationProgress + '%' }"></div>
+      </div>
+      <p class="generation-step-text">{{ generationStepText }}</p>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-type PointCategory = 'knowledge' | 'mindset' | 'speaking'
-
 interface Point {
-  category: PointCategory // 分類：knowledge（知識）, mindset（考え方）, speaking（話し方）
   question: string        // 問いかけ：ポイントを投げかける質問
-  point: string           // ポイント：ポイントの解説
+  point: string           // 正解基準：ポイントの解説
   correctAnswer: string   // 正答例：問いかけに対する口語的なお手本の回答例
 }
 
@@ -282,10 +432,18 @@ const props = defineProps<{
   selectedCharacter?: string
 }>()
 
+// プロンプト生成設定の型
+interface PromptGenSettings {
+  speakingStyle: 'friendly' | 'polite' | 'strict'
+  maxTurnCount: number
+  endOnCall: boolean
+}
+
 const emit = defineEmits<{
   'update:overview': [value: string]
-  'update:selectedOpponent': [value: string]
+  'update:points': [value: Point[]]
   'generate-prompts': []
+  'generate-single-prompt': [modeKey: string, modeLabel: string, metaPrompt: string, settings: PromptGenSettings]
   'character-selected': [character: Character]
 }>()
 
@@ -294,14 +452,148 @@ const activeTab = ref<'points' | 'script' | 'characters'>('points')
 
 // ローカル状態
 const localOverview = ref(props.overview || '')
-// 台本タブの相手選択は常に 'teacher' をデフォルトにする
-const selectedOpponent = ref<'teacher' | 'customer'>('teacher')
 const selectedCharacterId = ref<string | null>(null)
-const selectedCategory = ref<'all' | PointCategory>('all')
+
+// ポイント編集用の状態
+const editingPointIndex = ref<number | null>(null)
+const editingPoint = ref<Point>({ question: '', point: '', correctAnswer: '' })
+
+// ローカルのポイントデータ（編集可能）
+const localPoints = ref<Point[]>([])
+
+// propsのpointsが変更されたらlocalPointsを更新
+watch(() => props.points, (newPoints) => {
+  if (newPoints) {
+    localPoints.value = newPoints.map(p => ({ ...p }))
+  }
+}, { immediate: true, deep: true })
+
+// ポイント編集開始
+const startEditPoint = (index: number) => {
+  editingPointIndex.value = index
+  const point = localPoints.value[index]
+  editingPoint.value = { ...point }
+}
+
+// ポイント編集保存
+const saveEditPoint = (index: number) => {
+  localPoints.value[index] = { ...editingPoint.value }
+  editingPointIndex.value = null
+  // 親に通知（必要に応じてemitを追加）
+  emit('update:points', localPoints.value)
+}
 
 // 概要編集用の状態
 const showOverviewEditor = ref(false)
 const editingOverview = ref('')
+
+// プロンプト生成確認ダイアログの状態
+const showConfirmDialog = ref(false)
+const isGeneratingPrompts = ref(false)
+const generatingModeLabel = ref('')
+const generationProgress = ref(0)
+const generationStepText = ref('')
+const currentGeneratingIndex = ref(0)
+
+// プロンプト生成ダイアログ用の状態
+const selectedPromptGenMode = ref('confirmation')
+const selectedSpeakingStyle = ref('friendly')
+const maxTurnCount = ref(10)
+const endOnCall = ref(true)
+const showTurnLimitTooltip = ref(false)
+const incorrectResponseType = ref('show-answer') // 不正解時の反応
+
+// モード別タブの定義
+const promptGenModes = [
+  { key: 'confirmation', label: '確認モード' },
+  { key: 'practice', label: '実践モード' },
+  { key: 'subtitle', label: '台本モード' },
+  { key: 'ai-demo', label: 'お手本モード' }
+]
+
+// 話し方スタイルの定義
+const speakingStyles = [
+  { value: 'friendly', label: 'フレンドリー' },
+  { value: 'polite', label: 'ていねい' },
+  { value: 'strict', label: '厳しい' }
+]
+
+// モード別の生成用メタプロンプト
+const modeMetaPrompts: Record<string, { label: string; metaPrompt: string }> = {
+  'subtitle': {
+    label: '台本モード',
+    metaPrompt: `あなたは、人間がAIと会話をすることでトレーニングをするためにＡＩに渡すプロンプトを生成する、トレーニング設計のプロでかつ、プロンプト生成のプロです。人間が台本通りに話せるかを確認するために、ＡＩに台本の「お客様」側を演じさせたいです。台本の情報は与えられるのでそのままつかってください。また、生成されるプロンプトを実際に使う時には、末尾に相手キャラクターの設定を「あなたの設定：」として追加して動かします。なので、ＡＩにキャラクター的な情報を入れる必要はありません。`
+  },
+  'ai-demo': {
+    label: 'お手本モード',
+    metaPrompt: `あなたは、人間がAIと会話をすることでトレーニングをするためにＡＩに渡すプロンプトを生成する、トレーニング設計のプロでかつ、プロンプト生成のプロです。人間にお手本を見せるＡＩをつくりたいです。ポイントや台本（今回の文脈では、人間側がお客様側を体験することになる）の情報は与えられるのでそのままつかってください。また、生成されるプロンプトを実際に使う時には、末尾に相手キャラクターの設定を「あなたの設定：」として追加して動かします。なので、ＡＩにキャラクター的な情報を入れる必要はありません。`
+  },
+  'confirmation': {
+    label: '確認モード',
+    metaPrompt: `あなたは、人間がAIと会話をすることでトレーニングをするためにＡＩに渡すプロンプトを生成する、トレーニング設計のプロでかつ、プロンプト生成のプロです。人間がポイントを抑えているか確認する先生のＡＩをつくりたいです。確認するポイントの情報は与えられるのでそのままつかってください。また、生成されるプロンプトを実際に使う時には、末尾に相手キャラクターの設定を「あなたの設定：」として追加して動かします。なので、ＡＩにキャラクター的な情報を入れる必要はありません。`
+  },
+  'practice': {
+    label: '実践モード',
+    metaPrompt: `あなたは、人間がAIと会話をすることでトレーニングをするためにＡＩに渡すプロンプトを生成する、トレーニング設計のプロでかつ、プロンプト生成のプロです。人間がポイント押さえてしっかり話せるかを確認するために、ＡＩに「お客様」側を演じさせたいです。ポイントと台本の情報は与えられるので、これを参考に、ＡＩに与えるプロンプトを生成してください。生成されるプロンプトを実際に使う時には、末尾に相手キャラクターの設定を「あなたの設定：」として追加して動かします。なので、ＡＩにキャラクター的な情報を入れる必要はありません。`
+  }
+}
+
+// モードの順番
+const modeOrder = ['subtitle', 'ai-demo', 'confirmation', 'practice']
+
+// プロンプト生成確認後の処理
+const confirmGeneratePrompts = async () => {
+  showConfirmDialog.value = false
+  isGeneratingPrompts.value = true
+  generationProgress.value = 0
+  currentGeneratingIndex.value = 0
+
+  // 順次プロンプトを生成
+  for (let i = 0; i < modeOrder.length; i++) {
+    const modeKey = modeOrder[i]
+    const modeInfo = modeMetaPrompts[modeKey]
+
+    currentGeneratingIndex.value = i
+    generatingModeLabel.value = `${modeInfo.label}のロープレを設計中...`
+    generationStepText.value = `${i + 1} / ${modeOrder.length}`
+    generationProgress.value = (i / modeOrder.length) * 100
+
+    // 親コンポーネントに個別のプロンプト生成を依頼（設定を含む）
+    const settings: PromptGenSettings = {
+      speakingStyle: selectedSpeakingStyle.value as 'friendly' | 'polite' | 'strict',
+      maxTurnCount: maxTurnCount.value,
+      endOnCall: endOnCall.value
+    }
+    emit('generate-single-prompt', modeKey, modeInfo.label, modeInfo.metaPrompt, settings)
+
+    // 生成が完了するまで待機（親からの通知を待つ）
+    await waitForPromptGeneration()
+  }
+
+  generationProgress.value = 100
+  generatingModeLabel.value = '完了しました'
+  generationStepText.value = ''
+
+  // 少し待ってから閉じる
+  await new Promise(resolve => setTimeout(resolve, 500))
+  isGeneratingPrompts.value = false
+}
+
+// プロンプト生成完了を待つ
+let resolveGeneration: (() => void) | null = null
+const waitForPromptGeneration = () => {
+  return new Promise<void>(resolve => {
+    resolveGeneration = resolve
+  })
+}
+
+// 親コンポーネントから呼ばれる生成完了通知
+const notifyPromptGenerated = () => {
+  if (resolveGeneration) {
+    resolveGeneration()
+    resolveGeneration = null
+  }
+}
 
 // 概要編集ポップアップを開く時に現在の値をセット
 watch(showOverviewEditor, (isOpen) => {
@@ -317,33 +609,7 @@ const saveOverview = () => {
   showOverviewEditor.value = false
 }
 
-// 正解基準を箇条書きリストにパース
-const parseAnswerToList = (answer: string): string[] => {
-  if (!answer) return []
-  // 既に箇条書き形式の場合
-  if (answer.includes('・') || answer.includes('•') || answer.includes('-')) {
-    return answer.split(/[・•\-\n]/).map(s => s.trim()).filter(s => s.length > 0)
-  }
-  // 句点で区切る
-  if (answer.includes('。')) {
-    return answer.split('。').map(s => s.trim()).filter(s => s.length > 0)
-  }
-  // そのまま返す
-  return [answer]
-}
-
-// 台本の話者クラスを取得
-const getDialogueClass = (speaker: 'self' | 'opponent' | 'narrator') => {
-  if (speaker === 'self') {
-    return 'dialogue-self'
-  }
-  if (speaker === 'narrator') {
-    return 'dialogue-narrator'
-  }
-  return selectedOpponent.value === 'teacher' ? 'dialogue-teacher' : 'dialogue-customer'
-}
-
-// 話者ラベルを取得
+// 話者ラベルを取得（台本は常に営業vsお客様形式）
 const getSpeakerLabel = (speaker: 'self' | 'opponent' | 'narrator') => {
   if (speaker === 'self') {
     return 'あなた'
@@ -351,43 +617,13 @@ const getSpeakerLabel = (speaker: 'self' | 'opponent' | 'narrator') => {
   if (speaker === 'narrator') {
     return 'ナレーター'
   }
-  return selectedOpponent.value === 'teacher' ? '先生' : 'お客様'
+  return 'お客様'
 }
 
-// カテゴリオプション
-const categoryOptions = [
-  { value: 'all', label: '全て', icon: '📋' },
-  { value: 'knowledge', label: '知識', icon: '📚' },
-  { value: 'mindset', label: '考え方', icon: '💡' },
-  { value: 'speaking', label: '話し方', icon: '🗣️' }
-]
-
-// カテゴリラベルの取得
-const getCategoryLabel = (category: PointCategory): string => {
-  const labels: Record<PointCategory, string> = {
-    knowledge: '知識',
-    mindset: '考え方',
-    speaking: '話し方'
-  }
-  return labels[category] || category
-}
-
-// カテゴリごとのポイント数を取得
-const getCategoryCount = (category: string): number => {
-  if (category === 'all') return props.points?.length || 0
-  return props.points?.filter(p => p.category === category).length || 0
-}
-
-// フィルタリングされたポイント
+// フィルタリングされたポイント（ローカルデータを使用）
 const filteredPoints = computed(() => {
-  if (selectedCategory.value === 'all') return props.points || []
-  return (props.points || []).filter(p => p.category === selectedCategory.value)
+  return localPoints.value
 })
-
-// 元のインデックスを取得
-const getOriginalIndex = (point: Point): number => {
-  return (props.points || []).findIndex(p => p === point)
-}
 
 // キャラクター選択処理
 const selectCharacter = (character: Character) => {
@@ -395,17 +631,6 @@ const selectCharacter = (character: Character) => {
   emit('character-selected', character)
 }
 
-// 相手オプション（先生とお客様のみ）
-const opponentOptions = [
-  { label: '先生', value: 'teacher' },
-  { label: 'お客様', value: 'customer' }
-]
-
-// 選択された相手のラベル
-const selectedOpponentLabel = computed(() => {
-  const option = opponentOptions.find(o => o.value === selectedOpponent.value)
-  return option?.label || '相手'
-})
 
 // ポイントリスト
 const points = computed(() => props.points || [])
@@ -533,11 +758,6 @@ watch(localOverview, (newVal) => {
   emit('update:overview', newVal)
 })
 
-// selectedOpponent変更を親に通知
-watch(selectedOpponent, (newVal) => {
-  emit('update:selectedOpponent', newVal)
-})
-
 // propsの変更を監視
 watch(() => props.overview, (newVal) => {
   if (newVal !== undefined) {
@@ -556,7 +776,8 @@ const setActiveTab = (tab: 'points' | 'script' | 'characters') => {
 // 外部に公開
 defineExpose({
   setActiveTab,
-  characters
+  characters,
+  notifyPromptGenerated
 })
 </script>
 
@@ -707,60 +928,6 @@ defineExpose({
   color: #9ca3af;
 }
 
-/* Category Filter */
-.category-filter {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  margin-bottom: 12px;
-}
-
-.category-tag {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
-  background: white;
-  font-size: 12px;
-  color: #6b7280;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.category-tag:hover {
-  border-color: #d1d5db;
-  background: #f9fafb;
-}
-
-.category-tag.active {
-  border-color: #6366f1;
-  background: #eef2ff;
-  color: #4f46e5;
-}
-
-.category-icon {
-  font-size: 12px;
-}
-
-.category-label {
-  font-weight: 500;
-}
-
-.category-count {
-  font-size: 10px;
-  background: #f3f4f6;
-  padding: 1px 5px;
-  border-radius: 8px;
-  color: #9ca3af;
-}
-
-.category-tag.active .category-count {
-  background: #c7d2fe;
-  color: #4f46e5;
-}
-
 /* Points Section */
 .points-section {
   display: flex;
@@ -797,128 +964,104 @@ defineExpose({
   border-color: #d1d5db;
 }
 
-.point-question-row {
+/* ポイントヘッダー（Q + 編集ボタン） */
+.point-header {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 10px 12px;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
   background: #f8fafc;
   border-bottom: 1px solid #e5e7eb;
 }
 
-.point-number {
+.point-q-badge {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 24px;
+  width: 24px;
   height: 24px;
   background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
   color: white;
   font-size: 12px;
   font-weight: 700;
-  border-radius: 50%;
+  border-radius: 6px;
   flex-shrink: 0;
 }
 
-.point-category-badge {
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 10px;
-  font-weight: 600;
-  flex-shrink: 0;
+.point-edit-btn {
+  margin-left: auto;
+  opacity: 0.5;
+  transition: opacity 0.15s;
 }
 
-.badge-knowledge {
-  background: #fef3c7;
-  color: #92400e;
+.point-card:hover .point-edit-btn {
+  opacity: 1;
 }
 
-.badge-mindset {
-  background: #dbeafe;
-  color: #1e40af;
+.point-save-btn {
+  margin-left: auto;
 }
 
-.badge-speaking {
-  background: #f3e8ff;
-  color: #6b21a8;
-}
-
-.point-question {
-  flex: 1;
-  font-size: 13px;
-  font-weight: 500;
-  color: #1e293b;
-  line-height: 1.5;
-}
-
-/* ポイント解説行 */
-.point-explanation-row {
+/* ポイントセクション（問/正解基準/正答例） */
+.point-section {
   display: flex;
-  align-items: flex-start;
-  gap: 8px;
+  flex-direction: column;
+  gap: 6px;
   padding: 10px 12px;
-  background: white;
   border-bottom: 1px solid #f1f5f9;
 }
 
-.point-row-icon {
-  flex-shrink: 0;
-  font-size: 14px;
-  margin-top: 2px;
+.point-section:last-child {
+  border-bottom: none;
 }
 
-.point-icon {
-  color: #f59e0b;
+.point-section-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  padding: 2px 6px;
+  background: #f1f5f9;
+  border-radius: 4px;
+  width: fit-content;
 }
 
-.answer-icon {
-  color: #3b82f6;
-}
-
-.point-explanation {
-  font-size: 12px;
+.point-section-value {
+  font-size: 13px;
   color: #334155;
   line-height: 1.6;
+  white-space: pre-wrap;
 }
 
-/* 正答例行 */
-.point-answer-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 10px 12px;
-  background: white;
-}
-
-.point-answer {
-  font-size: 12px;
+.point-answer-value {
   color: #475569;
+  font-style: italic;
+}
+
+/* ポイント編集用テキストエリア */
+.point-edit-textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 13px;
   line-height: 1.6;
+  resize: vertical;
+  background: white;
+  color: #334155;
+  font-family: inherit;
+}
+
+.point-edit-textarea:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
 /* Script Tab */
-.script-persona-selector {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
-  background: #fafafa;
-  border: 1px solid #f0f0f0;
-  border-radius: 6px;
-}
-
-.persona-label {
-  font-size: 12px;
-  font-weight: 500;
-  color: #6b7280;
-  white-space: nowrap;
-}
-
 .script-content-area {
   flex: 1;
   display: flex;
   flex-direction: column;
-  margin-top: 12px;
 }
 
 .script-empty {
@@ -1196,69 +1339,6 @@ defineExpose({
   font-style: italic;
 }
 
-/* Point Answer Content */
-.point-answer-content {
-  flex: 1;
-}
-
-.point-answer-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.point-answer-list li {
-  font-size: 12px;
-  color: #475569;
-  line-height: 1.5;
-  padding-left: 14px;
-  position: relative;
-}
-
-.point-answer-list li::before {
-  content: '•';
-  position: absolute;
-  left: 0;
-  color: #3b82f6;
-  font-weight: bold;
-}
-
-/* Opponent Toggle */
-.opponent-toggle {
-  display: flex;
-  gap: 4px;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 3px;
-}
-
-.opponent-toggle-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border: none;
-  border-radius: 6px;
-  background: transparent;
-  font-size: 13px;
-  color: #64748b;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.opponent-toggle-btn:hover {
-  background: #f1f5f9;
-}
-
-.opponent-toggle-btn.active {
-  background: #6366f1;
-  color: white;
-}
-
 /* Overview Editor Modal */
 .overview-editor-textarea {
   width: 100%;
@@ -1287,5 +1367,424 @@ defineExpose({
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+
+/* 確認ダイアログ */
+.confirm-dialog-text {
+  font-size: 14px;
+  color: #374151;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.confirm-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* プログレスバー */
+.generation-progress {
+  width: 200px;
+  height: 6px;
+  background: #e5e7eb;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 16px;
+}
+
+.generation-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.generation-step-text {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+/* プロンプト生成ダイアログ */
+.prompt-gen-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.prompt-gen-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.prompt-gen-section-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+/* モード別タブ */
+.prompt-gen-mode-tabs {
+  display: flex;
+  gap: 4px;
+  background: #f1f5f9;
+  padding: 4px;
+  border-radius: 8px;
+}
+
+.prompt-gen-mode-tab {
+  flex: 1;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.prompt-gen-mode-tab:hover {
+  color: #475569;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.prompt-gen-mode-tab.active {
+  color: #1e293b;
+  background: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* モード説明エリア（タブ直下） */
+.prompt-gen-mode-description-area {
+  margin-top: 12px;
+  margin-bottom: 16px;
+}
+
+.prompt-gen-mode-desc {
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+
+.prompt-gen-mode-desc p {
+  margin: 0;
+  font-size: 13px;
+  color: #0369a1;
+  line-height: 1.6;
+}
+
+/* 共通設定セクション */
+.prompt-gen-common-section {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.prompt-gen-common-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.prompt-gen-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.prompt-gen-field-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+}
+
+/* ボタングループ（話し方選択） */
+.prompt-gen-btn-group {
+  display: flex;
+  gap: 8px;
+}
+
+.prompt-gen-toggle-btn {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.prompt-gen-toggle-btn:hover {
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+.prompt-gen-toggle-btn.active {
+  color: #6366f1;
+  background: #eef2ff;
+  border-color: #6366f1;
+}
+
+/* チェックボックス */
+.prompt-gen-checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.prompt-gen-checkbox-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.prompt-gen-checkbox-row-with-tooltip {
+  position: relative;
+}
+
+.prompt-gen-tooltip {
+  position: absolute;
+  left: 0;
+  top: 100%;
+  margin-top: 4px;
+  background: #1f2937;
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  white-space: nowrap;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.prompt-gen-tooltip::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: 16px;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 6px solid #1f2937;
+}
+
+.prompt-gen-tooltip-close {
+  background: none;
+  border: none;
+  color: #9ca3af;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.prompt-gen-tooltip-close:hover {
+  color: #fff;
+}
+
+.prompt-gen-checkbox {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: #6366f1;
+  cursor: pointer;
+}
+
+.prompt-gen-checkbox:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.prompt-gen-checkbox-label {
+  font-size: 14px;
+  color: #374151;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.prompt-gen-turn-input-wrapper {
+  color: #64748b;
+}
+
+.prompt-gen-turn-input {
+  width: 60px;
+  padding: 4px 8px;
+  font-size: 13px;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  text-align: center;
+  margin: 0 4px;
+}
+
+.prompt-gen-turn-input:focus {
+  outline: none;
+  border-color: #6366f1;
+}
+
+/* 不正解時の反応（ラジオボタン） */
+.prompt-gen-radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.prompt-gen-radio-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  color: #374151;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.prompt-gen-radio {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: #6366f1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.prompt-gen-field-note {
+  font-size: 12px;
+  color: #9ca3af;
+  font-weight: normal;
+}
+
+/* モード別コンテンツ */
+.prompt-gen-mode-content {
+  min-height: 60px;
+}
+
+.prompt-gen-mode-pane {
+  padding: 12px 0;
+}
+
+.prompt-gen-mode-description {
+  font-size: 14px;
+  color: #475569;
+  line-height: 1.7;
+}
+
+.prompt-gen-mode-description p {
+  margin: 0 0 8px 0;
+}
+
+.prompt-gen-mode-description p:last-child {
+  margin-bottom: 0;
+}
+
+.prompt-gen-coming-soon {
+  color: #9ca3af;
+  font-style: italic;
+}
+
+/* 警告メッセージ */
+.prompt-gen-warning {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #92400e;
+}
+
+.prompt-gen-warning-icon {
+  font-size: 18px;
+  color: #f59e0b;
+  flex-shrink: 0;
+}
+
+/* ポイント横並びレイアウト */
+.point-question-text {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1e293b;
+  line-height: 1.5;
+}
+
+.point-question-edit {
+  flex: 1;
+  padding: 4px 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: inherit;
+  resize: none;
+  min-height: 24px;
+}
+
+.point-question-edit:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+}
+
+.point-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.point-row:last-child {
+  border-bottom: none;
+}
+
+.point-row-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  padding: 2px 6px;
+  background: #f1f5f9;
+  border-radius: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.point-row-value {
+  flex: 1;
+  font-size: 13px;
+  color: #334155;
+  line-height: 1.5;
+}
+
+.point-row-edit {
+  flex: 1;
+  padding: 4px 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: inherit;
+  resize: none;
+  min-height: 24px;
+}
+
+.point-row-edit:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
 }
 </style>

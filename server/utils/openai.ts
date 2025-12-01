@@ -1,13 +1,14 @@
 import OpenAI from 'openai'
 
-let openaiClient: OpenAI | null = null
-
 export function getOpenAIClient(): OpenAI {
-  if (!openaiClient) {
-    const config = useRuntimeConfig()
-    openaiClient = new OpenAI({
-      apiKey: config.openaiApiKey || process.env.NUXT_OPENAI_API_KEY || ''
-    })
+  const config = useRuntimeConfig()
+  const apiKey = config.openaiApiKey || process.env.NUXT_OPENAI_API_KEY || ''
+
+  if (!apiKey) {
+    console.error('OpenAI API key is not configured')
   }
-  return openaiClient
+
+  return new OpenAI({
+    apiKey
+  })
 }

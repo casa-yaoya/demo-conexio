@@ -2,9 +2,11 @@ import { getOpenAIClient } from '../utils/openai'
 
 interface GeneratePromptRequest {
   mode: 'subtitle' | 'ai-demo' | 'confirmation' | 'practice'
+  metaPrompt?: string  // エージェントに渡すメタプロンプト
   roleplayDesign?: {
     situation?: string
     opponentSetting?: string
+    script?: string  // 台本データ
     missions?: {
       required?: string[]
       scoring?: string[]
@@ -15,6 +17,11 @@ interface GeneratePromptRequest {
       criteria: string
       example: string
     }>
+  }
+  settings?: {
+    speakingStyle?: string  // フレンドリー、ていねい、厳しい
+    maxTurnCount?: number   // 上限ターン数
+    endOnCall?: boolean     // 終了コールで終了するか
   }
   files?: Array<{
     name: string
@@ -86,7 +93,7 @@ const modeTemplates: Record<string, string> = {
 
 export default defineEventHandler(async (event): Promise<GeneratePromptResponse> => {
   const body = await readBody<GeneratePromptRequest>(event)
-  const { mode, roleplayDesign, files = [] } = body
+  const { mode, metaPrompt, roleplayDesign, settings, files = [] } = body
 
   if (!mode) {
     throw createError({
@@ -95,7 +102,7 @@ export default defineEventHandler(async (event): Promise<GeneratePromptResponse>
     })
   }
 
-  console.log(`📝 Generating prompt for mode: ${mode}`)
+  console.log(`📝 Generating prompt for mode: ${mode}`, settings)
 
   try {
     const openai = getOpenAIClient()
@@ -103,15 +110,63 @@ export default defineEventHandler(async (event): Promise<GeneratePromptResponse>
     // Build the design context
     const designContext = buildDesignContext(roleplayDesign, files)
 
+    // メタプロンプトがある場合はそれを使用、なければデフォルトのテンプレート
+    if (metaPrompt) {
+      // メタプロンプトを使用してプロンプト生成エージェントに依頼（Responses API: gpt-4.1）
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4.1',
+        max_tokens: 4096,
+        messages: [
+          {
+            role: 'system',
+            content: metaPrompt
+          },
+          {
+            role: 'user',
+            content: `以下の情報を元に、${getModeLabel(mode)}用のシステムプロンプトを生成してください。
+
+【状況・概要】
+${roleplayDesign?.situation || '設定なし'}
+
+${roleplayDesign?.script ? `【台本】\n${roleplayDesign.script}\n` : ''}
+
+${roleplayDesign?.points?.length ? `【ポイント】\n${roleplayDesign.points.map((p, i) =>
+  `${i + 1}. ${p.question}\n   基準: ${p.criteria}\n   例: ${p.example}`
+).join('\n')}\n` : ''}
+
+${files.length > 0 ? `【参考ファイル情報】\n${files.map(f => `- ${f.name}: ${f.summary || f.content?.substring(0, 500) || '内容なし'}`).join('\n')}` : ''}
+
+【会話設定】
+- 話し方スタイル: ${settings?.speakingStyle || 'フレンドリー'}
+- 上限ターン数: ${settings?.maxTurnCount || 10}ターン
+- 終了コール対応: ${settings?.endOnCall ? 'プレイヤーまたはAIが「会話終了」などの終了コールをしたら会話を終了する' : '終了コールでは終了しない'}
+
+上記を踏まえて、AIに与えるシステムプロンプトを生成してください。
+話し方スタイルに合わせた口調で話すよう指示を含めてください。
+ターン数の上限と終了条件も必ずプロンプトに含めてください。
+キャラクター情報は末尾に追加されるので含めないでください。
+出力はプロンプトのみ、マークダウン装飾なしでお願いします。`
+          }
+        ]
+      })
+
+      const generatedPrompt = response.choices[0]?.message?.content || ''
+
+      return {
+        mode,
+        systemPrompt: generatedPrompt,
+        conversationFlow: generateConversationFlow(mode, roleplayDesign)
+      }
+    }
+
+    // 従来の処理（metaPromptがない場合）
     // Get the base template
     const baseTemplate = modeTemplates[mode] || modeTemplates['practice']
     const templateWithDesign = baseTemplate.replace('{{DESIGN}}', designContext)
 
-    // Use OpenAI to enhance and customize the prompt
-    // Note: OpenAI's Responses API (if available) would be used here
-    // For now, using the Chat Completions API as a fallback
+    // Use OpenAI to enhance and customize the prompt（Responses API: gpt-4.1）
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: 'gpt-4.1',
       max_tokens: 2048,
       messages: [
         {
@@ -209,7 +264,7 @@ function getModeLabel(mode: string): string {
     'subtitle': '台本モード',
     'ai-demo': 'お手本モード',
     'confirmation': '確認モード',
-    'practice': '実戦モード'
+    'practice': '実践モード'
   }
   return labels[mode] || mode
 }

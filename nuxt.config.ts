@@ -4,8 +4,8 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
 
-  // SPAモード
-  ssr: false,
+  // Cloudflare Pages用: SSRを有効化
+  ssr: true,
 
   modules: [
     '@nuxt/ui',
@@ -50,6 +50,7 @@ export default defineNuxtConfig({
   },
 
   nitro: {
+    preset: 'cloudflare-pages',
     experimental: {
       websocket: true
     },
