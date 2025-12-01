@@ -42,7 +42,17 @@
       "Bash(cmd //c \"taskkill /F /IM node.exe\")",
       "Bash(del \"c:\\Users\\naoya\\naretore-nuxt\\server\\utils\\anthropic.ts\")",
       "Bash(if exist \"c:\\Users\\naoya\\naretore-nuxt\\.nuxt\" rmdir /s /q \"c:\\Users\\naoya\\naretore-nuxt\\.nuxt\")",
-      "Bash(npx nuxi prepare)"
+      "Bash(npx nuxi prepare)",
+      "Bash(git fetch:*)",
+      "Bash(\"/c/Users/naoya/AppData/Local/Programs/GitHub CLI/gh.exe\" repo view casa-yaoya/demo-conexio)",
+      "Bash(cmd /c \"where gh\")",
+      "Bash(cmd /c \"gh --version\")",
+      "Bash(git stash:*)",
+      "Bash(git ls-tree:*)",
+      "Bash(git cat-file:*)",
+      "Bash(git archive:*)",
+      "Bash(tar:*)",
+      "Bash(npx nuxi typecheck:*)"
     ],
     "deny": [],
     "ask": []

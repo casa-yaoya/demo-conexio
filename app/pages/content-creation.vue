@@ -23,6 +23,16 @@
           class="cc-selector-select"
         />
       </div>
+      <UButton
+        variant="outline"
+        color="neutral"
+        size="sm"
+        class="cc-course-edit-btn"
+        @click="showCourseEditor = true"
+      >
+        <UIcon name="i-lucide-settings" class="cc-course-edit-icon" />
+        コース編集
+      </UButton>
 
       <!-- 構築中メッセージ -->
       <div v-if="isBuilding" class="cc-building-message">
@@ -48,7 +58,7 @@
       </div>
       <!-- 入力パネルヘッダー -->
       <div class="cc-panel-header">
-        <UIcon name="i-lucide-edit-3" class="cc-panel-header-icon" />
+        <UIcon name="i-lucide-upload" class="cc-panel-header-icon" />
         <span class="cc-panel-header-title">入力パネル</span>
         <UButton
           color="primary"
@@ -74,14 +84,6 @@
         </button>
         <button
           class="cc-panel-tab"
-          :class="{ active: operationTab === 'course' }"
-          @click="operationTab = 'course'"
-        >
-          <UIcon name="i-lucide-folder-tree" class="cc-panel-tab-icon" />
-          <span>コース</span>
-        </button>
-        <button
-          class="cc-panel-tab"
           :class="{ active: operationTab === 'files' }"
           @click="operationTab = 'files'"
         >
@@ -101,54 +103,6 @@
           @file-goals-updated="handleFileGoalsUpdated"
           @start-roleplay-generation="handleStartRoleplayGeneration"
         />
-      </div>
-
-      <!-- コースタブ -->
-      <div v-show="operationTab === 'course'" class="cc-operation-tab-content active">
-        <div class="cc-course-manager">
-          <div class="cc-course-tree">
-            <!-- ツリー構造 -->
-            <div v-for="(category, catIndex) in courseTree" :key="catIndex" class="cc-tree-category">
-              <!-- カテゴリー（Lv.1） -->
-              <div
-                class="cc-tree-node cc-tree-category-node"
-                @click="toggleTreeNode('category', catIndex)"
-              >
-                <span class="cc-tree-expand-icon">{{ category.expanded ? '▼' : '▶' }}</span>
-                <span class="cc-tree-icon">📁</span>
-                <span class="cc-tree-label">{{ category.name }}</span>
-                <span class="cc-tree-count">({{ category.lessons.length }})</span>
-              </div>
-
-              <!-- レッスン一覧 -->
-              <div v-show="category.expanded" class="cc-tree-children">
-                <div
-                  v-for="(lesson, lessonIndex) in category.lessons"
-                  :key="lessonIndex"
-                  class="cc-tree-node cc-tree-lesson-node"
-                  :class="{ 'cc-tree-node-selected': selectedLesson === `${catIndex}-${lessonIndex}` }"
-                  @click="selectLesson(catIndex, lessonIndex, lesson)"
-                >
-                  <span class="cc-tree-expand-icon"></span>
-                  <span class="cc-tree-icon">📄</span>
-                  <span class="cc-tree-label">{{ lesson.name }}</span>
-                  <span v-if="lesson.status === 'draft'" class="cc-tree-status cc-status-draft">下書き</span>
-                  <span v-else-if="lesson.status === 'published'" class="cc-tree-status cc-status-published">公開中</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 操作ボタン -->
-          <div class="cc-course-actions">
-            <UButton variant="outline" color="neutral" size="sm" @click="addNewCategory">
-              + カテゴリーを追加
-            </UButton>
-            <UButton variant="outline" color="neutral" size="sm" @click="addNewLesson">
-              + レッスンを追加
-            </UButton>
-          </div>
-        </div>
       </div>
 
       <!-- ファイルタブ -->
@@ -258,10 +212,10 @@
     <!-- 右列: プレイエリア＋モード選択＋プロンプトパネル -->
     <div class="cc-right-column">
       <div class="cc-panel cc-play-component">
-        <!-- プレイパネルヘッダー -->
+        <!-- 実行パネルヘッダー -->
         <div class="cc-panel-header">
           <UIcon name="i-lucide-play-circle" class="cc-panel-header-icon" />
-          <span class="cc-panel-header-title">プレイパネル</span>
+          <span class="cc-panel-header-title">実行パネル</span>
           <UButton
             variant="ghost"
             color="neutral"
@@ -301,6 +255,18 @@
               />
             </div>
 
+            <!-- キャラクターリストボタン -->
+            <UButton
+              variant="outline"
+              color="neutral"
+              size="sm"
+              class="cc-character-list-btn"
+              @click="showCharacterListPopup = true"
+            >
+              <UIcon name="i-lucide-users" class="cc-character-list-icon" />
+              キャラクターリスト
+            </UButton>
+
             <!-- スペーサー -->
             <div class="cc-opponent-spacer"></div>
 
@@ -326,6 +292,14 @@
             >
               {{ conversationActive ? '■ 停止' : '▶ スタート' }}
             </UButton>
+
+            <!-- モード選択（スタートボタンの下） -->
+            <USelect
+              v-model="selectedMode"
+              :items="modeOptions"
+              size="md"
+              class="cc-mode-select-btn"
+            />
           </div>
 
           <!-- 中央: 映像表示エリア -->
@@ -370,36 +344,158 @@
                 マイクボタンを押して話してください
               </span>
               <span v-else class="cc-status-text cc-status-idle">
-                スタートボタンでロープレを開始
+                {{ getModeDescription(selectedMode) }}
               </span>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- プロンプトパネル（下） -->
-      <div class="cc-panel cc-prompt-panel">
+      <!-- 出力パネル（下） -->
+      <div class="cc-panel cc-output-panel">
         <div class="cc-panel-header">
-          <UIcon name="i-lucide-file-code" class="cc-panel-header-icon" />
-          <span class="cc-panel-header-title">モード：</span>
-          <USelect
-            v-model="selectedMode"
-            :items="modeOptions"
-            size="sm"
-            class="cc-prompt-mode-select"
-          />
-          <span class="cc-prompt-mode-description">{{ getModeDescription(selectedMode) }}</span>
+          <UIcon name="i-lucide-file-output" class="cc-panel-header-icon" />
+          <span class="cc-panel-header-title">出力パネル</span>
+          <UButton
+            variant="ghost"
+            color="neutral"
+            size="xs"
+            class="cc-copy-btn"
+            :disabled="!currentOutputContent"
+            @click="copyOutputContent"
+          >
+            <UIcon :name="outputCopied ? 'i-lucide-check' : 'i-lucide-copy'" />
+            <span>{{ outputCopied ? 'コピー済み' : 'コピー' }}</span>
+          </UButton>
         </div>
 
-        <div class="cc-prompt-content-wrapper">
-          <div v-if="currentPrompt?.isGenerating" class="cc-prompt-loading">
-            <span class="cc-loading-spinner"></span>
-            <span>プロンプトを生成中...</span>
+        <!-- 出力パネルタブ -->
+        <div class="cc-output-tabs">
+          <button
+            class="cc-output-tab"
+            :class="{ active: outputTab === 'dialogue' }"
+            @click="outputTab = 'dialogue'"
+          >
+            <UIcon name="i-lucide-message-circle" class="cc-output-tab-icon" />
+            <span>対話プロンプト</span>
+          </button>
+          <button
+            class="cc-output-tab"
+            :class="{ active: outputTab === 'evaluation' }"
+            @click="outputTab = 'evaluation'"
+          >
+            <UIcon name="i-lucide-clipboard-check" class="cc-output-tab-icon" />
+            <span>評価プロンプト</span>
+          </button>
+          <button
+            class="cc-output-tab"
+            :class="{ active: outputTab === 'transcript' }"
+            @click="outputTab = 'transcript'"
+          >
+            <UIcon name="i-lucide-scroll-text" class="cc-output-tab-icon" />
+            <span>会話ログ</span>
+          </button>
+          <button
+            class="cc-output-tab"
+            :class="{ active: outputTab === 'result' }"
+            @click="outputTab = 'result'"
+          >
+            <UIcon name="i-lucide-bar-chart-2" class="cc-output-tab-icon" />
+            <span>ロープレ結果</span>
+          </button>
+        </div>
+
+        <!-- 出力パネルコンテンツ -->
+        <div class="cc-output-content">
+          <!-- 対話プロンプトタブ -->
+          <div v-show="outputTab === 'dialogue'" class="cc-output-pane">
+            <div class="cc-prompt-content-wrapper">
+              <div v-if="currentDialoguePrompt?.isGenerating" class="cc-prompt-loading">
+                <span class="cc-loading-spinner"></span>
+                <span>対話プロンプトを生成中...</span>
+              </div>
+              <pre v-else-if="currentDialoguePrompt?.content" class="cc-prompt-content-text">{{ currentDialoguePrompt.content }}</pre>
+              <div v-else class="cc-prompt-empty">
+                <span>まだ生成されていません</span>
+                <p class="cc-prompt-empty-hint">設計パネルの「プロンプト生成」ボタンで生成します</p>
+              </div>
+            </div>
           </div>
-          <pre v-else-if="currentPrompt?.content" class="cc-prompt-content-text">{{ currentPrompt.content }}</pre>
-          <div v-else class="cc-prompt-empty">
-            <span>まだ生成されていません</span>
-            <p class="cc-prompt-empty-hint">設計パネルの「プロンプト生成」ボタンで生成します</p>
+
+          <!-- 評価プロンプトタブ -->
+          <div v-show="outputTab === 'evaluation'" class="cc-output-pane">
+            <div class="cc-prompt-content-wrapper">
+              <div v-if="currentEvaluationPrompt?.isGenerating" class="cc-prompt-loading">
+                <span class="cc-loading-spinner"></span>
+                <span>評価プロンプトを生成中...</span>
+              </div>
+              <pre v-else-if="currentEvaluationPrompt?.content" class="cc-prompt-content-text">{{ currentEvaluationPrompt.content }}</pre>
+              <div v-else class="cc-prompt-empty">
+                <span>まだ生成されていません</span>
+                <p class="cc-prompt-empty-hint">評価軸を設定してからプロンプトを生成します</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 会話ログタブ -->
+          <div v-show="outputTab === 'transcript'" class="cc-output-pane">
+            <div class="cc-transcript-content">
+              <div v-if="conversationTranscript.length === 0" class="cc-transcript-empty">
+                <UIcon name="i-lucide-message-square-dashed" class="cc-transcript-empty-icon" />
+                <span>まだ会話がありません</span>
+                <p class="cc-transcript-empty-hint">ロープレを開始すると会話ログが表示されます</p>
+              </div>
+              <div v-else class="cc-transcript-list">
+                <div
+                  v-for="(item, index) in conversationTranscript"
+                  :key="index"
+                  class="cc-transcript-item"
+                  :class="[item.role === 'user' ? 'cc-transcript-user' : 'cc-transcript-ai']"
+                >
+                  <div class="cc-transcript-role">{{ item.role === 'user' ? 'あなた' : 'AI' }}</div>
+                  <div class="cc-transcript-text">{{ item.text }}</div>
+                  <div class="cc-transcript-time">{{ item.timestamp }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 結果タブ -->
+          <div v-show="outputTab === 'result'" class="cc-output-pane">
+            <!-- フィードバック生成中 -->
+            <div v-if="isGeneratingFeedback" class="cc-generating-feedback">
+              <UIcon name="i-lucide-loader-2" class="cc-generating-feedback-icon" />
+              <span class="cc-generating-feedback-text">フィードバックを生成中...</span>
+            </div>
+            <!-- 結果表示 -->
+            <div v-else-if="evaluationResult" class="cc-result-content">
+              <div class="cc-result-score-section">
+                <div class="cc-result-score-label">総合スコア</div>
+                <div class="cc-result-score-value" :class="getScoreClass(evaluationResult.score)">
+                  {{ evaluationResult.score }}点
+                </div>
+              </div>
+              <div class="cc-result-feedback-section">
+                <div class="cc-result-feedback-label">フィードバック</div>
+                <div class="cc-result-feedback-text" v-html="evaluationResult.feedbackHtml"></div>
+              </div>
+              <div v-if="evaluationResult.details && evaluationResult.details.length > 0" class="cc-result-details-section">
+                <div class="cc-result-details-label">詳細評価</div>
+                <div class="cc-result-details-list">
+                  <div v-for="(detail, index) in evaluationResult.details" :key="index" class="cc-result-detail-item">
+                    <span class="cc-result-detail-name">{{ detail.name }}</span>
+                    <span class="cc-result-detail-score" :class="getScoreClass(detail.score)">{{ detail.score }}点</span>
+                    <span class="cc-result-detail-comment">{{ detail.comment }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- 空状態 -->
+            <div v-else class="cc-result-empty">
+              <UIcon name="i-lucide-clock" class="cc-result-empty-icon" />
+              <span>会話終了後に結果が表示されます</span>
+              <p class="cc-result-empty-hint">ロープレを開始して会話を完了してください</p>
+            </div>
           </div>
         </div>
       </div>
@@ -412,12 +508,124 @@
       @close="showCharacterSettingsPopup = false"
       @apply="applyCharacterSettings"
     />
+
+    <!-- コース編集ポップアップ -->
+    <UModal v-model:open="showCourseEditor" title="コース編集" :ui="{ width: 'max-w-2xl' }">
+      <template #body>
+        <div class="cc-course-editor-content">
+          <div class="cc-course-tree">
+            <!-- ツリー構造 -->
+            <div v-for="(category, catIndex) in courseTree" :key="catIndex" class="cc-tree-category">
+              <!-- カテゴリー（Lv.1） -->
+              <div
+                class="cc-tree-node cc-tree-category-node"
+                @click="toggleTreeNode('category', catIndex)"
+              >
+                <span class="cc-tree-expand-icon">{{ category.expanded ? '▼' : '▶' }}</span>
+                <span class="cc-tree-icon">📁</span>
+                <span class="cc-tree-label">{{ category.name }}</span>
+                <span class="cc-tree-count">({{ category.lessons.length }})</span>
+              </div>
+
+              <!-- レッスン一覧 -->
+              <div v-show="category.expanded" class="cc-tree-children">
+                <div
+                  v-for="(lesson, lessonIndex) in category.lessons"
+                  :key="lessonIndex"
+                  class="cc-tree-node cc-tree-lesson-node"
+                  :class="{ 'cc-tree-node-selected': selectedLesson === `${catIndex}-${lessonIndex}` }"
+                  @click="selectLesson(catIndex, lessonIndex, lesson)"
+                >
+                  <span class="cc-tree-expand-icon"></span>
+                  <span class="cc-tree-icon">📄</span>
+                  <span class="cc-tree-label">{{ lesson.name }}</span>
+                  <span v-if="lesson.status === 'draft'" class="cc-tree-status cc-status-draft">下書き</span>
+                  <span v-else-if="lesson.status === 'published'" class="cc-tree-status cc-status-published">公開中</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 操作ボタン -->
+          <div class="cc-course-actions">
+            <UButton variant="outline" color="neutral" size="sm" @click="addNewCategory">
+              + カテゴリーを追加
+            </UButton>
+            <UButton variant="outline" color="neutral" size="sm" @click="addNewLesson">
+              + レッスンを追加
+            </UButton>
+          </div>
+        </div>
+      </template>
+      <template #footer>
+        <div class="cc-course-editor-footer">
+          <UButton variant="ghost" color="neutral" @click="showCourseEditor = false">閉じる</UButton>
+        </div>
+      </template>
+    </UModal>
+
+    <!-- キャラクターリストポップアップ -->
+    <UModal v-model:open="showCharacterListPopup" title="キャラクターリスト" :ui="{ width: 'max-w-3xl' }">
+      <template #body>
+        <div class="cc-character-list-content">
+          <div class="cc-character-list-header">
+            <UIcon name="i-lucide-users" class="cc-character-list-header-icon" />
+            <span class="cc-character-list-title">登場キャラクター</span>
+            <span class="cc-character-list-count">{{ buildPanelRef?.characters?.length || 0 }}人</span>
+          </div>
+          <div class="cc-character-list-grid">
+            <div
+              v-for="character in buildPanelRef?.characters || []"
+              :key="character.id"
+              class="cc-character-card"
+              :class="{ 'cc-character-card-selected': selectedCharacter === character.id }"
+              @click="selectCharacterFromList(character)"
+            >
+              <div class="cc-character-avatar">
+                <video
+                  :src="character.avatar"
+                  class="cc-character-avatar-video"
+                  autoplay
+                  loop
+                  muted
+                  playsinline
+                />
+              </div>
+              <div class="cc-character-info">
+                <div class="cc-character-name-row">
+                  <span class="cc-character-name">{{ character.name }}</span>
+                  <span class="cc-character-age">{{ character.age }}歳</span>
+                </div>
+                <div class="cc-character-attribute">{{ character.attribute }}</div>
+                <div class="cc-character-detail">
+                  <span class="cc-detail-label">性格:</span>
+                  <span class="cc-detail-value">{{ character.personality }}</span>
+                </div>
+                <div class="cc-character-detail">
+                  <span class="cc-detail-label">口癖:</span>
+                  <span class="cc-detail-value">{{ character.catchphrase }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+      <template #footer>
+        <div class="cc-character-list-footer">
+          <UButton variant="ghost" color="neutral" @click="showCharacterListPopup = false">閉じる</UButton>
+        </div>
+      </template>
+    </UModal>
   </div>
 </template>
 
 <script setup lang="ts">
 import type { FileData, RoleplayContext } from '../types/roleplay'
 import type { RealtimeConfig } from '../composables/useRealtimeAPI'
+import { useBasePrompts, type PromptGenSettings } from '../composables/useBasePrompts'
+
+// プロンプト構成要素取得用composable
+const { getBasePrompt, getSettingsPrompt } = useBasePrompts()
 
 definePageMeta({
   layout: 'default'
@@ -531,10 +739,10 @@ const characterOptions = computed(() => {
 
 // モード選択オプション
 const modeOptions = [
-  { label: '台本モード', value: 'subtitle' },
-  { label: 'お手本モード', value: 'ai-demo' },
   { label: '確認モード', value: 'confirmation' },
-  { label: '実践モード', value: 'practice' }
+  { label: '実践モード', value: 'practice' },
+  { label: '台本モード', value: 'subtitle' },
+  { label: 'お手本モード', value: 'ai-demo' }
 ]
 
 const voiceOptions = [
@@ -549,6 +757,128 @@ const isRecording = computed(() => realtimeIsRecording.value)
 const showResult = ref(false)
 const score = ref(85)
 const feedbackHtml = ref('')
+
+// 出力パネルのタブ状態
+const outputTab = ref<'dialogue' | 'evaluation' | 'transcript' | 'result'>('dialogue')
+
+// 会話トランスクリプト
+interface TranscriptItem {
+  role: 'user' | 'ai'
+  text: string
+  timestamp: string
+}
+const conversationTranscript = ref<TranscriptItem[]>([])
+const isGeneratingFeedback = ref(false)
+
+// 評価結果の型定義
+interface EvaluationDetail {
+  name: string
+  score: number
+  comment: string
+}
+
+interface EvaluationResult {
+  score: number
+  feedback: string
+  feedbackHtml: string
+  details?: EvaluationDetail[]
+}
+
+// 評価結果
+const evaluationResult = ref<EvaluationResult | null>(null)
+
+// ターン数カウント（ユーザーの発言回数）
+const turnCount = ref(0)
+
+// 終了コールのキーワードリスト
+const END_CALL_KEYWORDS = ['会話終了', '終了です', 'ロープレ終了', 'お疲れ様でした', '以上です', '終わりです']
+
+// 出力パネルのコピー機能
+const outputCopied = ref(false)
+
+const currentOutputContent = computed(() => {
+  if (outputTab.value === 'dialogue') {
+    return currentDialoguePrompt.value?.content || ''
+  } else if (outputTab.value === 'evaluation') {
+    return currentEvaluationPrompt.value?.content || ''
+  } else if (outputTab.value === 'transcript') {
+    // 会話ログをテキスト形式で
+    return conversationTranscript.value.map(item => {
+      const role = item.role === 'user' ? 'あなた' : 'AI'
+      return `${role}：${item.text}`
+    }).join('\n')
+  } else if (outputTab.value === 'result') {
+    if (!evaluationResult.value) return ''
+    let text = `【ロープレ結果】\n総合スコア: ${evaluationResult.value.score}点\n\n【フィードバック】\n${evaluationResult.value.feedback}\n`
+    if (evaluationResult.value.details) {
+      text += '\n【詳細評価】\n'
+      evaluationResult.value.details.forEach(detail => {
+        text += `・${detail.name}: ${detail.score}点\n  ${detail.comment}\n`
+      })
+    }
+    return text
+  }
+  return ''
+})
+
+const copyOutputContent = async () => {
+  if (!currentOutputContent.value) return
+  try {
+    await navigator.clipboard.writeText(currentOutputContent.value)
+    outputCopied.value = true
+    setTimeout(() => {
+      outputCopied.value = false
+    }, 2000)
+  } catch (err) {
+    console.error('Failed to copy:', err)
+  }
+}
+
+// 4モード別の対話プロンプト
+interface DialoguePromptDisplay {
+  modeKey: string
+  content: string
+  isGenerating: boolean
+}
+
+const dialoguePromptsDisplay = ref<DialoguePromptDisplay[]>([
+  { modeKey: 'confirmation', content: '', isGenerating: false },
+  { modeKey: 'practice', content: '', isGenerating: false },
+  { modeKey: 'subtitle', content: '', isGenerating: false },
+  { modeKey: 'ai-demo', content: '', isGenerating: false }
+])
+
+// 4モード別の評価プロンプト
+interface EvaluationPromptDisplay {
+  modeKey: string
+  content: string
+  isGenerating: boolean
+}
+
+const evaluationPromptsDisplay = ref<EvaluationPromptDisplay[]>([
+  { modeKey: 'confirmation', content: '', isGenerating: false },
+  { modeKey: 'practice', content: '', isGenerating: false },
+  { modeKey: 'subtitle', content: '', isGenerating: false },
+  { modeKey: 'ai-demo', content: '', isGenerating: false }
+])
+
+// 現在選択中のモードの対話プロンプト
+const currentDialoguePrompt = computed(() => {
+  return dialoguePromptsDisplay.value.find(p => p.modeKey === selectedMode.value)
+})
+
+// 現在選択中のモードの評価プロンプト
+const currentEvaluationPrompt = computed(() => {
+  return evaluationPromptsDisplay.value.find(p => p.modeKey === selectedMode.value)
+})
+
+// スコアに応じたCSSクラスを返す
+const getScoreClass = (scoreValue: number): string => {
+  if (scoreValue >= 80) return 'score-excellent'
+  if (scoreValue >= 60) return 'score-good'
+  if (scoreValue >= 40) return 'score-average'
+  return 'score-poor'
+}
 
 // Custom character animation webm files
 const customListeningVideo = ref<string | null>(null)
@@ -571,7 +901,7 @@ const uploadedFiles = ref<FileData[]>([])
 const scripts = ref<Array<{ mode: string; content: string; expanded: boolean }>>([])
 const systemPrompts = ref<Array<{ mode: string; content: string; expanded: boolean }>>([])
 const selectedFileIndex = ref<number | null>(null)
-const defaultModes = ['台本モード', 'お手本モード', '確認モード', '実戦モード']
+const defaultModes = ['確認モード', '実戦モード', '台本モード', 'お手本モード']
 const isGeneratingPrompts = ref(false)
 
 // Mode mapping for API calls
@@ -601,6 +931,14 @@ const systemPromptsDisplay = ref<SystemPromptDisplay[]>(
   }))
 )
 
+// モード毎の設定プロンプト用設定値を保持
+const modeSettingsMap = ref<Record<string, PromptGenSettings>>({
+  'confirmation': { speakingStyle: 'friendly', maxTurnCount: 10, endOnCall: true, incorrectResponseType: 'show-answer' },
+  'practice': { speakingStyle: 'friendly', maxTurnCount: 10, endOnCall: true },
+  'ai-demo': { speakingStyle: 'friendly', maxTurnCount: 10, endOnCall: true },
+  'subtitle': { speakingStyle: 'friendly', maxTurnCount: 10, endOnCall: true }
+})
+
 // モードの説明を取得
 const getModeDescription = (mode: string): string => {
   const descriptions: Record<string, string> = {
@@ -612,47 +950,70 @@ const getModeDescription = (mode: string): string => {
   return descriptions[mode] || ''
 }
 
-// 選択中のモードに対応する題材プロンプト
-const currentSubjectPrompt = computed(() => {
+// 選択中のモードに対応する内容プロンプト（旧: 題材プロンプト）
+const currentContentPrompt = computed(() => {
   return systemPromptsDisplay.value.find(p => p.modeKey === selectedMode.value)
 })
 
-// 合成プロンプト（題材プロンプト + 人格プロンプト）をリアクティブに生成
+/**
+ * 合成プロンプト（4層構造）
+ *
+ * 構成: ①固定指示 ＋ ②人格設定 ＋ ③流れ設定 ＋ ④内容設定
+ *
+ * ①モード毎の固定指示: モード別の基本指示文（useBasePromptsから取得）
+ * ②人格設定: キャラクター設定（「あなたの設定：」として追加）
+ * ③流れ設定: 話し方・終了条件などの設定
+ * ④内容設定: ポイント・台本などのトレーニング内容
+ */
 const mergedPrompt = computed(() => {
-  const subjectPrompt = currentSubjectPrompt.value
-  if (!subjectPrompt?.content) {
+  const contentPrompt = currentContentPrompt.value
+  if (!contentPrompt?.content) {
     return null
   }
 
-  // 選択されたキャラクター情報を取得
+  // ①モード毎の固定指示を取得
+  const modeInstruction = getBasePrompt(selectedMode.value)
+
+  // ②人格設定を生成
   const character = selectedCharacterInfo.value
-  if (!character) {
-    // キャラクターがなければ題材プロンプトのみ
-    return {
-      content: subjectPrompt.content,
-      isGenerating: subjectPrompt.isGenerating
-    }
-  }
-
-  // 題材プロンプト + 人格プロンプトを合成
-  const characterSettings = `
-
-あなたの設定：
+  let characterSettings = ''
+  if (character) {
+    characterSettings = `あなたの設定：
 - 名前: ${character.name}
 - 年齢: ${character.age}歳
 - 属性: ${character.attribute}
 - 性格: ${character.personality}
 - 口癖: ${character.catchphrase}`
+  }
+
+  // ③流れ設定を取得
+  const currentSettings = modeSettingsMap.value[selectedMode.value]
+  const flowSettings = currentSettings ? getSettingsPrompt(selectedMode.value, currentSettings) : ''
+
+  // ④内容設定
+  const contentSettings = contentPrompt.content
+
+  // 合成: ①固定指示 ＋ ②人格設定 ＋ ③流れ設定 ＋ ④内容設定
+  const parts = [modeInstruction]
+  if (characterSettings) parts.push(characterSettings)
+  if (flowSettings) parts.push(flowSettings)
+  parts.push(contentSettings)
+  const fullPrompt = parts.join('\n\n')
 
   return {
-    content: subjectPrompt.content + characterSettings,
-    isGenerating: subjectPrompt.isGenerating
+    content: fullPrompt,
+    isGenerating: contentPrompt.isGenerating,
+    // デバッグ用に各要素も保持
+    _modeInstruction: modeInstruction,
+    _characterSettings: characterSettings,
+    _flowSettings: flowSettings,
+    _contentSettings: contentSettings
   }
 })
 
 // 現在のプロンプト（合成済み）
 const currentPrompt = computed(() => {
-  return mergedPrompt.value || currentSubjectPrompt.value
+  return mergedPrompt.value || currentContentPrompt.value
 })
 
 // 選択中のモードのインデックス
@@ -673,6 +1034,150 @@ const editCurrentPrompt = () => {
   const index = currentPromptIndex.value
   if (index >= 0) {
     editPrompt(index)
+  }
+}
+
+// 評価軸データから評価プロンプトを生成
+const generateEvaluationPromptFromCriteria = (modeKey: string): string => {
+  const criteria = buildPanelRef.value?.evaluationCriteria || []
+
+  // チェックが入っている項目のみを抽出
+  const enabledCriteria: Array<{ category: string; items: Array<{ name: string; description: string }> }> = []
+
+  for (const category of criteria) {
+    const enabledItems = category.items.filter((item: any) => item.enabled)
+    if (enabledItems.length > 0) {
+      enabledCriteria.push({
+        category: category.name,
+        items: enabledItems.map((item: any) => ({
+          name: item.name,
+          description: item.description
+        }))
+      })
+    }
+  }
+
+  if (enabledCriteria.length === 0) {
+    return ''
+  }
+
+  // モード別の評価基準テンプレート
+  const modeInstructions: Record<string, string> = {
+    'subtitle': `【台本モードの評価基準】
+ユーザーが台本通りに発話できているかを評価してください。
+- 台本との一致度を重視
+- 言い回しの正確さを確認`,
+    'ai-demo': `【お手本モードの評価基準】
+AIのお手本を参考にしたユーザーの理解度を評価してください。
+- お手本の要点を理解しているか
+- 応用できているか`,
+    'confirmation': `【確認モードの評価基準】
+一問一答形式でのユーザーの回答を評価してください。
+- 回答の正確さ
+- 要点を押さえているか`,
+    'practice': `【実践モードの評価基準】
+本番を想定した実践的なやり取りを総合的に評価してください。
+- 自然な会話の流れ
+- 臨機応変な対応力`
+  }
+
+  let prompt = `あなたは営業ロールプレイの評価者です。
+以下の評価軸に基づいて、ユーザーの対話を評価してスコアとフィードバックを提供してください。
+
+${modeInstructions[modeKey] || modeInstructions['practice']}
+
+【評価軸】
+`
+
+  for (const cat of enabledCriteria) {
+    prompt += `\n■ ${cat.category}\n`
+    for (const item of cat.items) {
+      prompt += `  - ${item.name}`
+      if (item.description) {
+        prompt += `：${item.description}`
+      }
+      prompt += '\n'
+    }
+  }
+
+  prompt += `
+【出力フォーマット】
+以下のJSON形式で評価結果を出力してください：
+{
+  "score": 0-100の総合スコア,
+  "feedback": "総合的なフィードバックコメント",
+  "details": [
+    {
+      "name": "評価項目名",
+      "score": 0-100のスコア,
+      "comment": "この項目に対するコメント"
+    }
+  ]
+}`
+
+  return prompt
+}
+
+// 対話プロンプトを生成（内容プロンプト + キャラクター設定）
+const generateDialoguePromptContent = (modeKey: string): string => {
+  const contentPromptData = systemPromptsDisplay.value.find(p => p.modeKey === modeKey)
+  const character = selectedCharacterInfo.value
+
+  let content = contentPromptData?.content || ''
+
+  // キャラクター設定を追加
+  if (character) {
+    content += `
+
+あなたの設定：
+- 名前: ${character.name}
+- 年齢: ${character.age}歳
+- 属性: ${character.attribute}
+- 性格: ${character.personality}
+- 口癖: ${character.catchphrase}`
+  }
+
+  // モード別の対話指示を追加
+  const modeDialogueInstructions: Record<string, string> = {
+    'subtitle': `
+
+【台本モード】
+台本に沿って会話を進めてください。ユーザーが台本通りに発話できるようサポートします。`,
+    'ai-demo': `
+
+【お手本モード】
+AIがお手本として理想的な営業トークを実演します。ユーザーは聞いて学習してください。`,
+    'confirmation': `
+
+【確認モード】
+一問一答形式で、ユーザーの理解度を確認します。質問に対して回答を求めてください。`,
+    'practice': `
+
+【実践モード】
+本番さながらの実践的なロールプレイを行います。自然な会話の流れを重視してください。`
+  }
+
+  content += modeDialogueInstructions[modeKey] || ''
+
+  return content
+}
+
+// すべてのモードの出力パネル用プロンプトを生成
+const generateOutputPanelPrompts = () => {
+  const modes = ['confirmation', 'practice', 'subtitle', 'ai-demo']
+
+  for (const modeKey of modes) {
+    // 対話プロンプトを生成
+    const dialoguePrompt = dialoguePromptsDisplay.value.find(p => p.modeKey === modeKey)
+    if (dialoguePrompt) {
+      dialoguePrompt.content = generateDialoguePromptContent(modeKey)
+    }
+
+    // 評価プロンプトを生成
+    const evalPrompt = evaluationPromptsDisplay.value.find(p => p.modeKey === modeKey)
+    if (evalPrompt) {
+      evalPrompt.content = generateEvaluationPromptFromCriteria(modeKey)
+    }
   }
 }
 
@@ -755,6 +1260,8 @@ const characterSettings = computed(() => ({
 
 // Dialogs
 const showCharacterSettingsPopup = ref(false)
+const showCourseEditor = ref(false)
+const showCharacterListPopup = ref(false)
 
 // ロープレ構築可能かどうか（ChatAreaからファイルがあるか確認）
 const canGenerateRoleplay = computed(() => {
@@ -784,10 +1291,30 @@ const buildPanelRef = ref<any>(null)
 
 // Toggle roleplay - now uses Realtime API
 const toggleRoleplay = async () => {
+  // 停止時の処理（停止ボタン押下）
+  if (isPlaying.value) {
+    console.log('⏹️ Stop button pressed')
+    await endRoleplay()
+    return
+  }
+
+  // 開始時: 出力パネルの対話プロンプトをそのまま使用
+  const dialoguePromptContent = currentDialoguePrompt.value?.content
+  if (!dialoguePromptContent) {
+    console.warn('⚠️ 対話プロンプトが生成されていません')
+  }
+
+  // トランスクリプトをクリア（新しいセッション開始）
+  conversationTranscript.value = []
+  evaluationResult.value = null
+  turnCount.value = 0  // ターン数もリセット
+
   const config: RealtimeConfig = {
     voice: selectedCharacterInfo.value?.voice || 'alloy',
-    instructions: getInstructionsForMode(selectedMode.value)
+    instructions: dialoguePromptContent || getInstructionsForMode(selectedMode.value)
   }
+
+  console.log('🎬 Starting roleplay with prompt:', config.instructions?.substring(0, 100) + '...')
   await realtimeToggleRoleplay(config)
 }
 
@@ -836,9 +1363,184 @@ const toggleMic = () => {
   }
 }
 
+// 現在時刻をフォーマット
+const formatTimestamp = (): string => {
+  const now = new Date()
+  return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`
+}
+
+// AIの応答テキストを一時保持
+let currentAIResponse = ''
+
+// 終了コールが含まれているかチェック
+const containsEndCall = (text: string): boolean => {
+  return END_CALL_KEYWORDS.some(keyword => text.includes(keyword))
+}
+
+// ロープレ終了処理（共通）
+const endRoleplay = async () => {
+  console.log('🏁 Ending roleplay...')
+
+  // ロープレを停止
+  await stopRoleplay()
+
+  // ターン数をリセット
+  turnCount.value = 0
+
+  // 会話ログがあればフィードバック生成
+  if (conversationTranscript.value.length > 0) {
+    await generateFeedback()
+  }
+}
+
+// 終了条件をチェック
+const checkEndConditions = async (role: 'user' | 'ai', text: string) => {
+  // 現在の流れ設定を取得
+  const currentSettings = modeSettingsMap.value[selectedMode.value]
+  if (!currentSettings) return
+
+  // 終了コールチェック（設定が有効な場合）
+  if (currentSettings.endOnCall && containsEndCall(text)) {
+    console.log(`🔔 End call detected from ${role}: "${text}"`)
+    await endRoleplay()
+    return
+  }
+
+  // ターン数チェック（ユーザー発言時のみカウント）
+  if (role === 'user') {
+    turnCount.value++
+    console.log(`📊 Turn count: ${turnCount.value}/${currentSettings.maxTurnCount}`)
+
+    if (currentSettings.maxTurnCount > 0 && turnCount.value >= currentSettings.maxTurnCount) {
+      console.log('⏱️ Max turn count reached')
+      // AIの最後の応答を待ってから終了（少し遅延を入れる）
+      setTimeout(async () => {
+        await endRoleplay()
+      }, 3000)
+    }
+  }
+}
+
+// トランスクリプト記録用コールバックを設定
+onTranscript.value = (text: string, isFinal: boolean) => {
+  if (isFinal && text.trim()) {
+    conversationTranscript.value.push({
+      role: 'user',
+      text: text.trim(),
+      timestamp: formatTimestamp()
+    })
+    console.log('📝 User transcript:', text)
+
+    // 終了条件チェック
+    checkEndConditions('user', text.trim())
+  }
+}
+
+onAIResponse.value = (text: string) => {
+  currentAIResponse += text
+}
+
+// AI応答完了時にトランスクリプトに追加（response.doneイベントをwatch）
+watch(isSpeaking, (speaking, wasSpeaking) => {
+  // speaking が true から false に変わった時（AI発話完了）
+  if (wasSpeaking && !speaking && currentAIResponse.trim()) {
+    const aiText = currentAIResponse.trim()
+    conversationTranscript.value.push({
+      role: 'ai',
+      text: aiText,
+      timestamp: formatTimestamp()
+    })
+    console.log('🤖 AI response:', aiText)
+    currentAIResponse = ''
+
+    // 終了条件チェック（AIの発言も確認）
+    checkEndConditions('ai', aiText)
+  }
+})
+
+// フィードバック生成
+const generateFeedback = async () => {
+  if (conversationTranscript.value.length === 0) {
+    console.warn('⚠️ 会話ログがありません')
+    return
+  }
+
+  // 評価プロンプトを取得
+  const evaluationPrompt = currentEvaluationPrompt.value?.content
+  if (!evaluationPrompt) {
+    console.warn('⚠️ 評価プロンプトが設定されていません')
+    // 簡易フィードバックを表示
+    evaluationResult.value = {
+      score: 0,
+      feedback: '評価プロンプトが設定されていないため、詳細な評価ができませんでした。',
+      feedbackHtml: '<p>評価プロンプトが設定されていないため、詳細な評価ができませんでした。</p>',
+      details: []
+    }
+    outputTab.value = 'result'
+    return
+  }
+
+  isGeneratingFeedback.value = true
+  console.log('📊 Generating feedback...')
+
+  try {
+    // トランスクリプトをテキスト形式に変換
+    const transcriptText = conversationTranscript.value
+      .map(item => `${item.role === 'user' ? 'ユーザー' : 'AI'}: ${item.text}`)
+      .join('\n')
+
+    // フィードバックAPI呼び出し
+    const response = await $fetch<{
+      score: number
+      feedback: string
+      details?: Array<{ name: string; score: number; comment: string }>
+    }>('/api/generate-feedback', {
+      method: 'POST',
+      body: {
+        evaluationPrompt,
+        transcript: transcriptText
+      }
+    })
+
+    // 結果を設定
+    evaluationResult.value = {
+      score: response.score,
+      feedback: response.feedback,
+      feedbackHtml: response.feedback.replace(/\n/g, '<br>'),
+      details: response.details || []
+    }
+
+    // ロープレ結果タブに切り替え
+    outputTab.value = 'result'
+    console.log('✅ Feedback generated:', response.score)
+
+  } catch (error: any) {
+    console.error('❌ Error generating feedback:', error)
+    evaluationResult.value = {
+      score: 0,
+      feedback: `フィードバック生成中にエラーが発生しました: ${error.message || 'Unknown error'}`,
+      feedbackHtml: `<p>フィードバック生成中にエラーが発生しました: ${error.message || 'Unknown error'}</p>`,
+      details: []
+    }
+    outputTab.value = 'result'
+  } finally {
+    isGeneratingFeedback.value = false
+  }
+}
+
 // Watch for speaking state changes to control video animation
 watch(isSpeaking, (speaking) => {
   updateCharacterAnimation(speaking)
+})
+
+// systemPromptsDisplayの内容が変更されたら出力パネルの対話プロンプトを更新
+watch(systemPromptsDisplay, () => {
+  generateOutputPanelPrompts()
+}, { deep: true })
+
+// 選択キャラクターが変更されたら対話プロンプトを更新
+watch(selectedCharacter, () => {
+  generateOutputPanelPrompts()
 })
 
 // Update character animation based on speaking state
@@ -869,6 +1571,14 @@ const openCharacterSettings = () => {
 const handleCharacterSelected = (character: SelectedCharacterInfo) => {
   // 選択されたキャラクターIDを更新（selectedCharacterInfoはcomputedで自動取得）
   selectedCharacter.value = character.id
+  // キャラクター設定ポップアップを開く
+  showCharacterSettingsPopup.value = true
+}
+
+// キャラクターリストからキャラクターを選択
+const selectCharacterFromList = (character: SelectedCharacterInfo) => {
+  selectedCharacter.value = character.id
+  showCharacterListPopup.value = false
   // キャラクター設定ポップアップを開く
   showCharacterSettingsPopup.value = true
 }
@@ -913,18 +1623,22 @@ const addNewLesson = () => {
   const targetIndex = courseTree.value.findIndex(c => c.expanded)
   const index = targetIndex >= 0 ? targetIndex : 0
 
-  if (courseTree.value.length > 0) {
-    courseTree.value[index].lessons.push({
-      name: `新規レッスン ${courseTree.value[index].lessons.length + 1}`,
+  const targetCategory = courseTree.value[index]
+  if (targetCategory) {
+    targetCategory.lessons.push({
+      name: `新規レッスン ${targetCategory.lessons.length + 1}`,
       status: 'draft'
     })
-    courseTree.value[index].expanded = true
+    targetCategory.expanded = true
   }
 }
 
 const toggleTreeNode = (type: string, index: number) => {
   if (type === 'category') {
-    courseTree.value[index].expanded = !courseTree.value[index].expanded
+    const category = courseTree.value[index]
+    if (category) {
+      category.expanded = !category.expanded
+    }
   }
 }
 
@@ -940,55 +1654,103 @@ const editScript = (index: number) => {
 
 // Toggle prompt card expansion
 const togglePromptExpand = (index: number) => {
-  systemPromptsDisplay.value[index].expanded = !systemPromptsDisplay.value[index].expanded
-}
-
-// Generate a single prompt
-const generateSinglePrompt = async (modeKey: string, index: number) => {
-  if (systemPromptsDisplay.value[index].isGenerating) return
-
-  systemPromptsDisplay.value[index].isGenerating = true
-  systemPromptsDisplay.value[index].expanded = true
-
-  try {
-    // ポイントデータから評価ポイントを構築
-    const pointsForDesign = buildPoints.value.map(p => ({
-      question: p.question,
-      criteria: p.correctAnswer,
-      example: p.point
-    }))
-
-    // キャラクター情報を取得
-    const characterInfo = selectedCharacterInfo.value
-
-    const response = await $fetch<{ mode: string; systemPrompt: string }>('/api/generate-prompt', {
-      method: 'POST',
-      body: {
-        mode: modeKey,
-        roleplayDesign: {
-          situation: buildOverview.value,
-          opponentSetting: characterInfo ? `${characterInfo.name}（${characterInfo.attribute}）: ${characterInfo.personality}` : undefined,
-          points: pointsForDesign.length > 0 ? pointsForDesign : undefined
-        },
-        files: uploadedFiles.value.map(f => ({
-          name: f.name,
-          content: f.extractedText,
-          summary: f.summary
-        }))
-      }
-    })
-
-    systemPromptsDisplay.value[index].content = response.systemPrompt
-  } catch (error) {
-    console.error('Error generating prompt:', error)
-    systemPromptsDisplay.value[index].content = 'プロンプトの生成に失敗しました。APIキーを確認してください。'
-  } finally {
-    systemPromptsDisplay.value[index].isGenerating = false
+  const prompt = systemPromptsDisplay.value[index]
+  if (prompt) {
+    prompt.expanded = !prompt.expanded
   }
 }
 
+/**
+ * 単一プロンプト生成（4構成要素の合成、デフォルト設定使用）
+ *
+ * 構成: ①固定指示 ＋ ②人格設定 ＋ ③流れ設定 ＋ ④内容設定
+ */
+const generateSinglePrompt = (modeKey: string, index: number) => {
+  const targetPromptEntry = systemPromptsDisplay.value[index]
+  if (!targetPromptEntry || targetPromptEntry.isGenerating) return
+
+  targetPromptEntry.isGenerating = true
+  targetPromptEntry.expanded = true
+
+  // デフォルト設定を使用（保存済みがあればそれを使用）
+  const defaultSettings: PromptGenSettings = modeSettingsMap.value[modeKey] || {
+    speakingStyle: 'friendly',
+    maxTurnCount: 10,
+    endOnCall: true
+  }
+
+  // ①モード毎の固定指示
+  const modeInstruction = getBasePrompt(modeKey)
+
+  // ②人格設定
+  const characterInfo = selectedCharacterInfo.value
+  let characterSettings = ''
+  if (characterInfo) {
+    characterSettings = `あなたの設定：
+- 名前: ${characterInfo.name}
+- 年齢: ${characterInfo.age}歳
+- 属性: ${characterInfo.attribute}
+- 性格: ${characterInfo.personality}
+- 口癖: ${characterInfo.catchphrase}`
+  }
+
+  // ③流れ設定
+  const flowSettings = getSettingsPrompt(modeKey, defaultSettings)
+
+  // ④内容設定
+  let contentSettings = ''
+  if (buildOverview.value) {
+    contentSettings += `【シチュエーション】\n${buildOverview.value}\n\n`
+  }
+
+  if (modeKey === 'confirmation') {
+    if (buildPoints.value.length > 0) {
+      contentSettings += `【問いかけリスト】\n`
+      buildPoints.value.forEach((p: { question: string; point: string; correctAnswer: string }, i: number) => {
+        contentSettings += `${i + 1}. （問）${p.question}\n   （正解）${p.correctAnswer}\n`
+        if (p.point) {
+          contentSettings += `   （ポイント）${p.point}\n`
+        }
+      })
+    }
+  } else if (modeKey === 'subtitle') {
+    if (buildScriptLines.value.length > 0) {
+      contentSettings += `【台本】\n`
+      buildScriptLines.value.forEach((line: { speaker: string; text: string }) => {
+        const speaker = line.speaker === 'self' ? 'あなた' : (line.speaker === 'narrator' ? 'ナレーター' : 'お客様')
+        contentSettings += `${speaker}：${line.text}\n`
+      })
+    }
+  } else if (modeKey === 'practice' || modeKey === 'ai-demo') {
+    if (buildPoints.value.length > 0) {
+      contentSettings += `【押さえるべきポイント】\n`
+      buildPoints.value.forEach((p: { question: string; point: string; correctAnswer: string }, i: number) => {
+        contentSettings += `${i + 1}. ${p.question}\n`
+        if (p.correctAnswer) {
+          contentSettings += `   → ${p.correctAnswer}\n`
+        }
+      })
+    }
+  }
+
+  // 合成
+  const parts: string[] = []
+  if (modeInstruction) parts.push(modeInstruction)
+  if (flowSettings) parts.push(flowSettings)
+  if (characterSettings) parts.push(characterSettings)
+  if (contentSettings) parts.push(contentSettings)
+
+  const targetPrompt = systemPromptsDisplay.value[index]
+  if (targetPrompt) {
+    targetPrompt.content = parts.join('\n\n')
+    targetPrompt.isGenerating = false
+  }
+
+  console.log(`✅ Generated prompt for ${modeKey} (4-layer composition)`)
+}
+
 // Generate all prompts (legacy - now handled by BuildPanel)
-const generateAllPrompts = async () => {
+const generateAllPrompts = () => {
   console.log('🚀 generateAllPrompts called')
   console.log('📝 systemPromptsDisplay:', systemPromptsDisplay.value)
 
@@ -999,26 +1761,34 @@ const generateAllPrompts = async () => {
 
   isGeneratingPrompts.value = true
 
-  // Generate prompts sequentially to avoid server overload
+  // Generate prompts (no API calls, just 4-layer composition)
   for (let index = 0; index < systemPromptsDisplay.value.length; index++) {
     const prompt = systemPromptsDisplay.value[index]
-    console.log(`📝 Generating prompt for mode: ${prompt.modeKey} at index ${index}`)
-    await generateSinglePrompt(prompt.modeKey, index)
+    if (prompt) {
+      console.log(`📝 Generating prompt for mode: ${prompt.modeKey} at index ${index}`)
+      generateSinglePrompt(prompt.modeKey, index)
+    }
   }
   console.log('✅ All prompts generated')
   isGeneratingPrompts.value = false
 }
 
-// プロンプト生成設定の型
-interface PromptGenSettings {
-  speakingStyle: 'friendly' | 'polite' | 'strict'
-  maxTurnCount: number
-  endOnCall: boolean
-}
+// プロンプト生成設定の型はuseBasePromptsからインポート済み
 
-// Handle single prompt generation from BuildPanel
-const handleGenerateSinglePrompt = async (modeKey: string, modeLabel: string, metaPrompt: string, settings: PromptGenSettings) => {
+/**
+ * プロンプト生成（4構成要素の合成）
+ *
+ * AI APIを使わず、以下の4層を単純に合成する:
+ * ①モード毎の固定指示: モード別の基本指示文
+ * ②人格設定: キャラクター設定（「あなたの設定：」として追加）
+ * ③流れ設定: 話し方、終了条件などの設定
+ * ④内容設定: ポイント・台本・概要から構築
+ */
+const handleGenerateSinglePrompt = (modeKey: string, modeLabel: string, _metaPrompt: string, settings: PromptGenSettings) => {
   console.log(`📝 Generating prompt for mode: ${modeKey} (${modeLabel})`, settings)
+
+  // 流れ設定用の設定を保存
+  modeSettingsMap.value[modeKey] = { ...settings }
 
   // 対応するインデックスを検索
   const index = systemPromptsDisplay.value.findIndex((p: SystemPromptDisplay) => p.modeKey === modeKey)
@@ -1040,68 +1810,84 @@ const handleGenerateSinglePrompt = async (modeKey: string, modeLabel: string, me
   const targetIndex = index === -1 ? systemPromptsDisplay.value.length - 1 : index
   const targetPrompt = systemPromptsDisplay.value[targetIndex]
 
-  try {
-    // ポイントデータから評価ポイントを構築
-    const pointsForDesign = buildPoints.value.map((p: { question: string; point: string; correctAnswer: string }) => ({
-      question: p.question,
-      criteria: p.correctAnswer,
-      example: p.point
-    }))
+  // ===== 4構成要素の合成 =====
 
-    // キャラクター情報を取得
-    const characterInfo = selectedCharacterInfo.value
+  // ①モード毎の固定指示
+  const modeInstruction = getBasePrompt(modeKey)
 
-    // 台本データを取得
-    const scriptText = buildScriptLines.value.map((line: { speaker: string; text: string }) => {
-      const speaker = line.speaker === 'self' ? 'あなた' : (line.speaker === 'narrator' ? 'ナレーター' : 'お客様')
-      return `${speaker}：${line.text}`
-    }).join('\n')
+  // ②人格設定（キャラクター設定）
+  const characterInfo = selectedCharacterInfo.value
+  let characterSettings = ''
+  if (characterInfo) {
+    characterSettings = `あなたの設定：
+- 名前: ${characterInfo.name}
+- 年齢: ${characterInfo.age}歳
+- 属性: ${characterInfo.attribute}
+- 性格: ${characterInfo.personality}
+- 口癖: ${characterInfo.catchphrase}`
+  }
 
-    // 話し方スタイルのラベル変換
-    const speakingStyleLabels: Record<string, string> = {
-      'friendly': 'フレンドリー',
-      'polite': 'ていねい',
-      'strict': '厳しい'
+  // ③流れ設定（話し方、終了条件など）
+  const flowSettings = getSettingsPrompt(modeKey, settings)
+
+  // ④内容設定（ポイント・台本・概要から構築）
+  let contentSettings = ''
+
+  // 概要を追加
+  if (buildOverview.value) {
+    contentSettings += `【シチュエーション】\n${buildOverview.value}\n\n`
+  }
+
+  // モード別の内容を構築
+  if (modeKey === 'confirmation') {
+    // 確認モード: ポイントを一問一答形式で
+    if (buildPoints.value.length > 0) {
+      contentSettings += `【問いかけリスト】\n`
+      buildPoints.value.forEach((p, i) => {
+        contentSettings += `${i + 1}. （問）${p.question}\n   （正解）${p.correctAnswer}\n`
+        if (p.point) {
+          contentSettings += `   （ポイント）${p.point}\n`
+        }
+      })
     }
-
-    const response = await $fetch<{ mode: string; systemPrompt: string }>('/api/generate-prompt', {
-      method: 'POST',
-      body: {
-        mode: modeKey,
-        metaPrompt: metaPrompt,
-        roleplayDesign: {
-          situation: buildOverview.value,
-          opponentSetting: characterInfo ? `${characterInfo.name}（${characterInfo.attribute}）: ${characterInfo.personality}` : undefined,
-          points: pointsForDesign.length > 0 ? pointsForDesign : undefined,
-          script: scriptText || undefined
-        },
-        settings: {
-          speakingStyle: speakingStyleLabels[settings.speakingStyle] || 'フレンドリー',
-          maxTurnCount: settings.maxTurnCount,
-          endOnCall: settings.endOnCall
-        },
-        files: uploadedFiles.value.map((f: FileData) => ({
-          name: f.name,
-          content: f.extractedText,
-          summary: f.summary
-        }))
-      }
-    })
-
-    if (targetPrompt) {
-      targetPrompt.content = response.systemPrompt
-      targetPrompt.isGenerating = false
+  } else if (modeKey === 'subtitle') {
+    // 台本モード: 台本を追加
+    if (buildScriptLines.value.length > 0) {
+      contentSettings += `【台本】\n`
+      buildScriptLines.value.forEach((line: { speaker: string; text: string }) => {
+        const speaker = line.speaker === 'self' ? 'あなた' : (line.speaker === 'narrator' ? 'ナレーター' : 'お客様')
+        contentSettings += `${speaker}：${line.text}\n`
+      })
     }
-
-    console.log(`✅ Generated prompt for ${modeKey}`)
-
-  } catch (error) {
-    console.error('Error generating prompt:', error)
-    if (targetPrompt) {
-      targetPrompt.content = 'プロンプトの生成に失敗しました。APIキーを確認してください。'
-      targetPrompt.isGenerating = false
+  } else if (modeKey === 'practice' || modeKey === 'ai-demo') {
+    // 実践モード・お手本モード: ポイントを参考情報として追加
+    if (buildPoints.value.length > 0) {
+      contentSettings += `【押さえるべきポイント】\n`
+      buildPoints.value.forEach((p, i) => {
+        contentSettings += `${i + 1}. ${p.question}\n`
+        if (p.correctAnswer) {
+          contentSettings += `   → ${p.correctAnswer}\n`
+        }
+      })
     }
   }
+
+  // 合成: ①モード毎の固定指示 ＋ ②人格設定 ＋ ③流れ設定 ＋ ④内容設定
+  const parts: string[] = []
+  if (modeInstruction) parts.push(modeInstruction)
+  if (characterSettings) parts.push(characterSettings)
+  if (flowSettings) parts.push(flowSettings)
+  if (contentSettings) parts.push(contentSettings)
+
+  const finalPrompt = parts.join('\n\n')
+
+  // プロンプトを設定
+  if (targetPrompt) {
+    targetPrompt.content = finalPrompt
+    targetPrompt.isGenerating = false
+  }
+
+  console.log(`✅ Generated prompt for ${modeKey} (4-layer composition, no AI)`)
 
   // BuildPanelに生成完了を通知
   buildPanelRef.value?.notifyPromptGenerated?.()
@@ -1260,7 +2046,10 @@ const parseScriptToLines = (scriptText: string): Array<{ speaker: 'self' | 'oppo
       lines.push({ speaker: 'narrator', text: line.replace(/^(ナレーター|ナレーション|解説|注釈|タイトル|補足)[：:]/, '').trim() })
     } else if (lines.length > 0) {
       // 前の話者の続きとして追加
-      lines[lines.length - 1].text += '\n' + line.trim()
+      const lastLine = lines[lines.length - 1]
+      if (lastLine) {
+        lastLine.text += '\n' + line.trim()
+      }
     } else {
       // 最初の行が話者指定なしの場合はナレーターとして扱う
       lines.push({ speaker: 'narrator', text: line.trim() })
@@ -1622,9 +2411,28 @@ const handleDrop = (event: DragEvent) => {
   }
 }
 
+/* コピーボタン */
+.cc-copy-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  font-size: 12px;
+  color: #64748b;
+  transition: all 0.15s;
+}
+
+.cc-copy-btn:hover:not(:disabled) {
+  color: #0284c7;
+}
+
+.cc-copy-btn:disabled {
+  opacity: 0.4;
+}
+
 /* ヘッダーアクションボタン */
 .cc-header-action-button {
-  margin-left: auto;
+  margin-left: 8px;
   height: 36px;
   padding: 0 16px;
   font-size: 13px;
@@ -2132,6 +2940,336 @@ const handleDrop = (event: DragEvent) => {
   gap: 12px;
 }
 
+/* モード選択ボタン（マイク・スタートと同サイズ） */
+.cc-mode-select-btn {
+  width: 100%;
+  margin-top: 8px;
+}
+
+/* 出力パネル - main.cssでflex: 1が適用済み */
+
+.cc-output-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.cc-output-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cc-output-tab:hover {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.cc-output-tab.active {
+  background: white;
+  color: #0284c7;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.cc-output-tab-icon {
+  font-size: 16px;
+}
+
+.cc-output-content {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.cc-output-pane {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 結果タブ */
+.cc-result-content {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.cc-result-score-section {
+  text-align: center;
+  padding: 20px;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border-radius: 12px;
+}
+
+.cc-result-score-label {
+  font-size: 14px;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+
+.cc-result-score-value {
+  font-size: 48px;
+  font-weight: 700;
+}
+
+.cc-result-score-value.score-excellent {
+  color: #059669;
+}
+
+.cc-result-score-value.score-good {
+  color: #0284c7;
+}
+
+.cc-result-score-value.score-average {
+  color: #d97706;
+}
+
+.cc-result-score-value.score-poor {
+  color: #dc2626;
+}
+
+.cc-result-feedback-section {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.cc-result-feedback-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 10px;
+}
+
+.cc-result-feedback-text {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #374151;
+}
+
+.cc-result-details-section {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.cc-result-details-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 12px;
+}
+
+.cc-result-details-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cc-result-detail-item {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 12px;
+  align-items: start;
+  padding: 12px;
+  background: #f9fafb;
+  border-radius: 8px;
+}
+
+.cc-result-detail-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #334155;
+}
+
+.cc-result-detail-score {
+  font-size: 14px;
+  font-weight: 600;
+  min-width: 50px;
+  text-align: right;
+}
+
+.cc-result-detail-score.score-excellent {
+  color: #059669;
+}
+
+.cc-result-detail-score.score-good {
+  color: #0284c7;
+}
+
+.cc-result-detail-score.score-average {
+  color: #d97706;
+}
+
+.cc-result-detail-score.score-poor {
+  color: #dc2626;
+}
+
+.cc-result-detail-comment {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.cc-result-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 40px 20px;
+  color: #9ca3af;
+  font-size: 14px;
+  text-align: center;
+}
+
+.cc-result-empty-icon {
+  font-size: 32px;
+  color: #d1d5db;
+  margin-bottom: 8px;
+}
+
+.cc-result-empty-hint {
+  font-size: 12px;
+  color: #d1d5db;
+}
+
+/* 会話ログ（トランスクリプト）タブ */
+.cc-transcript-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.cc-transcript-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 40px 20px;
+  color: #9ca3af;
+  font-size: 14px;
+  text-align: center;
+}
+
+.cc-transcript-empty-icon {
+  font-size: 32px;
+  color: #d1d5db;
+  margin-bottom: 8px;
+}
+
+.cc-transcript-empty-hint {
+  font-size: 12px;
+  color: #d1d5db;
+}
+
+.cc-transcript-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cc-transcript-item {
+  padding: 12px 16px;
+  border-radius: 12px;
+  max-width: 85%;
+}
+
+.cc-transcript-user {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  align-self: flex-end;
+  border-bottom-right-radius: 4px;
+}
+
+.cc-transcript-ai {
+  background: #f1f5f9;
+  color: #1e293b;
+  align-self: flex-start;
+  border-bottom-left-radius: 4px;
+}
+
+.cc-transcript-role {
+  font-size: 11px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  opacity: 0.8;
+}
+
+.cc-transcript-user .cc-transcript-role {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.cc-transcript-ai .cc-transcript-role {
+  color: #64748b;
+}
+
+.cc-transcript-text {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.cc-transcript-time {
+  font-size: 10px;
+  margin-top: 6px;
+  opacity: 0.6;
+}
+
+.cc-transcript-user .cc-transcript-time {
+  text-align: right;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.cc-transcript-ai .cc-transcript-time {
+  color: #94a3b8;
+}
+
+/* フィードバック生成中の表示 */
+.cc-generating-feedback {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px 20px;
+  color: #6366f1;
+}
+
+.cc-generating-feedback-icon {
+  font-size: 32px;
+  animation: spin 1.5s linear infinite;
+}
+
+.cc-generating-feedback-text {
+  font-size: 14px;
+  font-weight: 500;
+}
+
 /* テストパネルヘッダー */
 .cc-test-panel-header {
   display: flex;
@@ -2299,6 +3437,183 @@ const handleDrop = (event: DragEvent) => {
 
 .cc-header-save-icon {
   font-size: 14px;
+}
+
+/* コース編集ボタン */
+.cc-course-edit-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.cc-course-edit-icon {
+  font-size: 14px;
+}
+
+/* コース編集ポップアップ */
+.cc-course-editor-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.cc-course-editor-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* キャラクターリストボタン */
+.cc-character-list-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  width: 100%;
+  justify-content: center;
+}
+
+.cc-character-list-icon {
+  font-size: 14px;
+}
+
+/* キャラクターリストポップアップ */
+.cc-character-list-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cc-character-list-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cc-character-list-header-icon {
+  font-size: 18px;
+  color: #8b5cf6;
+}
+
+.cc-character-list-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  flex: 1;
+}
+
+.cc-character-list-count {
+  font-size: 12px;
+  color: #9ca3af;
+  background: #f1f5f9;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.cc-character-list-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.cc-character-card {
+  display: flex;
+  gap: 12px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 12px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  cursor: pointer;
+}
+
+.cc-character-card:hover {
+  border-color: #c4b5fd;
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.1);
+}
+
+.cc-character-card-selected {
+  border-color: #8b5cf6;
+  background: #f5f3ff;
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.2);
+}
+
+.cc-character-avatar {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, #f3e8ff 0%, #ede9fe 100%);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.cc-character-avatar-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cc-character-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cc-character-name-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.cc-character-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.cc-character-age {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.cc-character-attribute {
+  font-size: 11px;
+  color: #8b5cf6;
+  font-weight: 500;
+}
+
+.cc-character-detail {
+  display: flex;
+  gap: 4px;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.cc-detail-label {
+  color: #9ca3af;
+  flex-shrink: 0;
+}
+
+.cc-detail-value {
+  color: #475569;
+}
+
+.cc-character-list-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 </style>

@@ -69,7 +69,7 @@ const isSidebarOpen = useState<boolean>('isSidebarOpen', () => false)
 // ナビゲーションアイテム - Lucideアイコンを使用
 const navigationItems = [
   { name: 'サマリー', path: '/summary', icon: 'i-lucide-bar-chart-3' },
-  { name: '個人比較', path: '/ranking', icon: 'i-lucide-trophy' },
+  { name: 'ランキング', path: '/ranking', icon: 'i-lucide-trophy' },
   { name: '個人記録', path: '/records', icon: 'i-lucide-award' },
   { name: 'ログ', path: '/logs', icon: 'i-lucide-file-text' },
   { name: 'ロープレ構築', path: '/content-creation', icon: 'i-lucide-hammer' },

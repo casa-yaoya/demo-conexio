@@ -4,6 +4,17 @@
       <UIcon name="i-lucide-hammer" class="cc-panel-header-icon" />
       <span class="cc-panel-header-title">設計パネル</span>
       <UButton
+        variant="ghost"
+        color="neutral"
+        size="xs"
+        class="cc-copy-btn"
+        :disabled="!currentTabContent"
+        @click="copyCurrentTabContent"
+      >
+        <UIcon :name="contentCopied ? 'i-lucide-check' : 'i-lucide-copy'" />
+        <span>{{ contentCopied ? 'コピー済み' : 'コピー' }}</span>
+      </UButton>
+      <UButton
         color="primary"
         size="sm"
         class="cc-header-action-button"
@@ -41,11 +52,11 @@
       </button>
       <button
         class="cc-panel-tab"
-        :class="{ active: activeTab === 'characters' }"
-        @click="activeTab = 'characters'"
+        :class="{ active: activeTab === 'evaluation' }"
+        @click="activeTab = 'evaluation'"
       >
-        <UIcon name="i-lucide-users" class="cc-panel-tab-icon" />
-        <span>キャラクター</span>
+        <UIcon name="i-lucide-clipboard-check" class="cc-panel-tab-icon" />
+        <span>評価軸</span>
       </button>
     </div>
 
@@ -163,56 +174,71 @@
         </div>
       </div>
 
-      <!-- キャラクタータブ -->
-      <div v-show="activeTab === 'characters'" class="tab-pane">
-        <div class="characters-section">
-          <div v-if="characters.length === 0" class="empty-message">
-            まだ生成されていません...
+      <!-- 評価軸タブ -->
+      <div v-show="activeTab === 'evaluation'" class="tab-pane">
+        <div class="evaluation-section">
+          <div v-if="evaluationCriteria.length === 0" class="empty-message">
+            まだ評価軸が設定されていません...
           </div>
           <template v-else>
-            <div class="characters-header">
-              <UIcon name="i-lucide-users" class="characters-icon" />
-              <span class="characters-title">登場キャラクター</span>
-              <span class="characters-count">{{ characters.length }}人</span>
-            </div>
-            <div class="characters-list">
-              <div
-                v-for="character in characters"
-                :key="character.id"
-                class="character-card"
-                :class="{ 'character-card-selected': selectedCharacterId === character.id }"
-                @click="selectCharacter(character)"
-              >
-              <div class="character-avatar">
-                <video
-                  :src="character.avatar"
-                  class="character-avatar-video"
-                  autoplay
-                  loop
-                  muted
-                  playsinline
+            <div
+              v-for="(category, catIndex) in evaluationCriteria"
+              :key="catIndex"
+              class="evaluation-category"
+            >
+              <!-- 大項目 -->
+              <div class="evaluation-category-header">
+                <input
+                  type="checkbox"
+                  :id="`cat-${catIndex}`"
+                  :checked="isCategoryChecked(catIndex)"
+                  :indeterminate="isCategoryIndeterminate(catIndex)"
+                  class="evaluation-checkbox"
+                  @change="toggleCategory(catIndex)"
+                />
+                <label :for="`cat-${catIndex}`" class="evaluation-category-title">
+                  {{ category.name }}
+                </label>
+                <UButton
+                  variant="ghost"
+                  size="xs"
+                  :icon="category.expanded ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
+                  class="evaluation-expand-btn"
+                  @click="toggleCategoryExpand(catIndex)"
                 />
               </div>
-              <div class="character-info">
-                <div class="character-name-row">
-                  <span class="character-name">{{ character.name }}</span>
-                  <span class="character-age">{{ character.age }}歳</span>
-                </div>
-                <div class="character-attribute">{{ character.attribute }}</div>
-                <div class="character-detail">
-                  <span class="detail-label">性格:</span>
-                  <span class="detail-value">{{ character.personality }}</span>
-                </div>
-                <div class="character-detail">
-                  <span class="detail-label">口癖:</span>
-                  <span class="detail-value">{{ character.catchphrase }}</span>
+              <div v-if="category.description" class="evaluation-category-description">
+                {{ category.description }}
+              </div>
+
+              <!-- 小項目リスト -->
+              <div v-show="category.expanded" class="evaluation-items">
+                <div
+                  v-for="(item, itemIndex) in category.items"
+                  :key="itemIndex"
+                  class="evaluation-item"
+                >
+                  <input
+                    type="checkbox"
+                    :id="`item-${catIndex}-${itemIndex}`"
+                    v-model="item.enabled"
+                    class="evaluation-checkbox"
+                  />
+                  <div class="evaluation-item-content">
+                    <label :for="`item-${catIndex}-${itemIndex}`" class="evaluation-item-name">
+                      {{ item.name }}
+                    </label>
+                    <div v-if="item.description" class="evaluation-item-description">
+                      {{ item.description }}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
           </template>
         </div>
       </div>
+
     </div>
 
     <!-- 概要編集ポップアップ -->
@@ -338,9 +364,9 @@
                 </div>
               </div>
 
-              <!-- 不正解の時の反応 -->
-              <div class="prompt-gen-field">
-                <span class="prompt-gen-field-label">不正解の時の反応 <span class="prompt-gen-field-note">※相手が先生の時のみ関係</span></span>
+              <!-- 不正解の時の反応（確認モードのみ表示） -->
+              <div v-if="selectedPromptGenMode === 'confirmation'" class="prompt-gen-field">
+                <span class="prompt-gen-field-label">不正解の時の反応</span>
                 <div class="prompt-gen-radio-group">
                   <label class="prompt-gen-radio-label">
                     <input type="radio" v-model="incorrectResponseType" value="show-answer" class="prompt-gen-radio" />
@@ -437,6 +463,7 @@ interface PromptGenSettings {
   speakingStyle: 'friendly' | 'polite' | 'strict'
   maxTurnCount: number
   endOnCall: boolean
+  incorrectResponseType?: 'show-answer' | 'hint-retry' | 'no-hint-retry' | 'ignore-move-on'
 }
 
 const emit = defineEmits<{
@@ -448,7 +475,149 @@ const emit = defineEmits<{
 }>()
 
 // タブ状態
-const activeTab = ref<'points' | 'script' | 'characters'>('points')
+const activeTab = ref<'points' | 'script' | 'evaluation'>('points')
+
+// 評価軸のデータ構造
+interface EvaluationItem {
+  name: string
+  description: string
+  enabled: boolean
+}
+
+interface EvaluationCategory {
+  name: string
+  description: string
+  expanded: boolean
+  items: EvaluationItem[]
+}
+
+// 評価軸データ（サンプルデータ）
+const evaluationCriteria = ref<EvaluationCategory[]>([
+  {
+    name: '質問のスキル',
+    description: '',
+    expanded: true,
+    items: [
+      {
+        name: '業界課題の知識',
+        description: '適切な課題を仮説だてて聞けているか。「～～業界だと、○○な話はよく聞きますが、御社ではいかがでしょうか？」のような質問に近いことを聞けていれば100点',
+        enabled: true
+      },
+      {
+        name: '質問の種類',
+        description: '事実を聞く質問、感情を聞く質問、うまくいっていることを聞く、うまくいっていないことを聞く、明確化質問(5W1H)、深掘り質問をする - 全てできれば100点',
+        enabled: true
+      },
+      {
+        name: '質問の内容',
+        description: '効果的に重要な内容を聞き出せたか',
+        enabled: true
+      },
+      {
+        name: '話し方',
+        description: '丁寧な言葉遣い、敬語ができている、誘導はせず、お客様のニーズに合わせて話を進めている、最初にクローズに質問をしている',
+        enabled: true
+      }
+    ]
+  },
+  {
+    name: '傾聴のスキル',
+    description: '',
+    expanded: true,
+    items: [
+      {
+        name: '相槌',
+        description: '適切なタイミングで相槌を打てているか',
+        enabled: true
+      },
+      {
+        name: '共感',
+        description: 'お客様の気持ちに共感する発言ができているか',
+        enabled: true
+      },
+      {
+        name: '要約の言語化',
+        description: 'お客様の話を適切に要約して確認できているか',
+        enabled: true
+      }
+    ]
+  }
+])
+
+// 評価軸の操作関数
+const toggleCategoryExpand = (catIndex: number) => {
+  evaluationCriteria.value[catIndex].expanded = !evaluationCriteria.value[catIndex].expanded
+}
+
+const isCategoryChecked = (catIndex: number): boolean => {
+  const items = evaluationCriteria.value[catIndex].items
+  return items.every(item => item.enabled)
+}
+
+const isCategoryIndeterminate = (catIndex: number): boolean => {
+  const items = evaluationCriteria.value[catIndex].items
+  const enabledCount = items.filter(item => item.enabled).length
+  return enabledCount > 0 && enabledCount < items.length
+}
+
+const toggleCategory = (catIndex: number) => {
+  const category = evaluationCriteria.value[catIndex]
+  const allChecked = isCategoryChecked(catIndex)
+  category.items.forEach(item => {
+    item.enabled = !allChecked
+  })
+}
+
+// コピー機能
+const contentCopied = ref(false)
+
+const currentTabContent = computed(() => {
+  if (activeTab.value === 'points') {
+    // ポイントタブの内容をテキスト形式で
+    let text = `【概要】\n${localOverview.value || '（未設定）'}\n\n【ポイント】\n`
+    localPoints.value.forEach((point, index) => {
+      text += `${index + 1}. ${point.question}\n   ポイント: ${point.point}\n   模範解答: ${point.correctAnswer}\n\n`
+    })
+    return text
+  } else if (activeTab.value === 'script') {
+    // 台本タブの内容
+    let text = '【台本】\n'
+    scriptLines.value.forEach(line => {
+      const speaker = line.speaker === 'self' ? 'あなた' : (line.speaker === 'narrator' ? 'ナレーター' : 'お客様')
+      text += `${speaker}：${line.text}\n`
+    })
+    return text
+  } else if (activeTab.value === 'evaluation') {
+    // 評価軸タブの内容
+    let text = '【評価軸】\n'
+    evaluationCriteria.value.forEach(cat => {
+      text += `\n■ ${cat.name}\n`
+      cat.items.forEach(item => {
+        const status = item.enabled ? '✓' : '○'
+        text += `  ${status} ${item.name}`
+        if (item.description) {
+          text += `\n    ${item.description}`
+        }
+        text += '\n'
+      })
+    })
+    return text
+  }
+  return ''
+})
+
+const copyCurrentTabContent = async () => {
+  if (!currentTabContent.value) return
+  try {
+    await navigator.clipboard.writeText(currentTabContent.value)
+    contentCopied.value = true
+    setTimeout(() => {
+      contentCopied.value = false
+    }, 2000)
+  } catch (err) {
+    console.error('Failed to copy:', err)
+  }
+}
 
 // ローカル状態
 const localOverview = ref(props.overview || '')
@@ -503,7 +672,7 @@ const endOnCall = ref(true)
 const showTurnLimitTooltip = ref(false)
 const incorrectResponseType = ref('show-answer') // 不正解時の反応
 
-// モード別タブの定義
+// モード別タブの定義（順序: 確認 → 実践 → 台本 → お手本）
 const promptGenModes = [
   { key: 'confirmation', label: '確認モード' },
   { key: 'practice', label: '実践モード' },
@@ -515,7 +684,7 @@ const promptGenModes = [
 const speakingStyles = [
   { value: 'friendly', label: 'フレンドリー' },
   { value: 'polite', label: 'ていねい' },
-  { value: 'strict', label: '厳しい' }
+  { value: 'strict', label: '怖い' }
 ]
 
 // モード別の生成用メタプロンプト
@@ -538,45 +707,50 @@ const modeMetaPrompts: Record<string, { label: string; metaPrompt: string }> = {
   }
 }
 
-// モードの順番
-const modeOrder = ['subtitle', 'ai-demo', 'confirmation', 'practice']
+// モードの順番（確認 → 実践 → 台本 → お手本）
+const modeOrder = ['confirmation', 'practice', 'subtitle', 'ai-demo']
 
-// プロンプト生成確認後の処理
-const confirmGeneratePrompts = async () => {
+// プロンプト生成確認後の処理（4構成合成、API不使用）
+const confirmGeneratePrompts = () => {
   showConfirmDialog.value = false
   isGeneratingPrompts.value = true
   generationProgress.value = 0
   currentGeneratingIndex.value = 0
 
-  // 順次プロンプトを生成
+  // 順次プロンプトを生成（同期処理）
   for (let i = 0; i < modeOrder.length; i++) {
     const modeKey = modeOrder[i]
+    if (!modeKey) continue
+
     const modeInfo = modeMetaPrompts[modeKey]
+    if (!modeInfo) continue
 
     currentGeneratingIndex.value = i
-    generatingModeLabel.value = `${modeInfo.label}のロープレを設計中...`
+    generatingModeLabel.value = `${modeInfo.label}のプロンプトを生成中...`
     generationStepText.value = `${i + 1} / ${modeOrder.length}`
-    generationProgress.value = (i / modeOrder.length) * 100
+    generationProgress.value = ((i + 1) / modeOrder.length) * 100
 
     // 親コンポーネントに個別のプロンプト生成を依頼（設定を含む）
+    // 確認モードの場合は不正解時の反応設定も追加
     const settings: PromptGenSettings = {
       speakingStyle: selectedSpeakingStyle.value as 'friendly' | 'polite' | 'strict',
       maxTurnCount: maxTurnCount.value,
       endOnCall: endOnCall.value
     }
+    if (modeKey === 'confirmation') {
+      settings.incorrectResponseType = incorrectResponseType.value as 'show-answer' | 'hint-retry' | 'no-hint-retry' | 'ignore-move-on'
+    }
     emit('generate-single-prompt', modeKey, modeInfo.label, modeInfo.metaPrompt, settings)
-
-    // 生成が完了するまで待機（親からの通知を待つ）
-    await waitForPromptGeneration()
   }
 
   generationProgress.value = 100
   generatingModeLabel.value = '完了しました'
   generationStepText.value = ''
 
-  // 少し待ってから閉じる
-  await new Promise(resolve => setTimeout(resolve, 500))
-  isGeneratingPrompts.value = false
+  // すぐに閉じる（同期処理なので待機不要）
+  setTimeout(() => {
+    isGeneratingPrompts.value = false
+  }, 300)
 }
 
 // プロンプト生成完了を待つ
@@ -769,7 +943,7 @@ watch(() => props.overview, (newVal) => {
 // （selectedCharacterはキャラクター選択、selectedOpponentは相手タイプ）
 
 // 外部からタブを変更するためのメソッド
-const setActiveTab = (tab: 'points' | 'script' | 'characters') => {
+const setActiveTab = (tab: 'points' | 'script' | 'evaluation') => {
   activeTab.value = tab
 }
 
@@ -777,7 +951,8 @@ const setActiveTab = (tab: 'points' | 'script' | 'characters') => {
 defineExpose({
   setActiveTab,
   characters,
-  notifyPromptGenerated
+  notifyPromptGenerated,
+  evaluationCriteria
 })
 </script>
 
@@ -800,6 +975,25 @@ defineExpose({
   background: #f8fafc;
   border-bottom: 1px solid #e5e7eb;
   flex-shrink: 0;
+}
+
+/* コピーボタン */
+.cc-copy-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  font-size: 12px;
+  color: #64748b;
+  transition: all 0.15s;
+}
+
+.cc-copy-btn:hover:not(:disabled) {
+  color: #0284c7;
+}
+
+.cc-copy-btn:disabled {
+  opacity: 0.4;
 }
 
 /* グローバルスタイルと同期 */
@@ -1786,5 +1980,103 @@ defineExpose({
   outline: none;
   border-color: #6366f1;
   box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+}
+
+/* 評価軸セクション */
+.evaluation-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.evaluation-category {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.evaluation-category-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.evaluation-checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: #6366f1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.evaluation-category-title {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  cursor: pointer;
+}
+
+.evaluation-expand-btn {
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+
+.evaluation-expand-btn:hover {
+  opacity: 1;
+}
+
+.evaluation-category-description {
+  padding: 8px 14px;
+  font-size: 12px;
+  color: #64748b;
+  background: #f8fafc;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.evaluation-items {
+  display: flex;
+  flex-direction: column;
+}
+
+.evaluation-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.15s;
+}
+
+.evaluation-item:last-child {
+  border-bottom: none;
+}
+
+.evaluation-item:hover {
+  background: #f9fafb;
+}
+
+.evaluation-item-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.evaluation-item-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #334155;
+  cursor: pointer;
+}
+
+.evaluation-item-description {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.6;
 }
 </style>
